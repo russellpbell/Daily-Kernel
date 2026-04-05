@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { searchCategory } from '@/lib/news-search';
-import { summarizeArticles } from '@/lib/claude-service';
+import { summarizeArticles, generateReviewCard } from '@/lib/claude-service';
+import { getDueReviews } from '@/lib/spaced-repetition';
 import { Briefing, CardSummary, NewsArticle } from '@/types';
 
 /**
@@ -230,6 +231,27 @@ export async function generateBriefing(
     expertiseMap.set(e.category_name, e.level);
   }
 
+  // Load URLs of cards the user has already seen (last 30 days) for deduplication
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const { data: recentBriefings } = await supabase
+    .from('briefings')
+    .select('id')
+    .eq('user_id', userId)
+    .gte('date', thirtyDaysAgo);
+
+  const seenUrls = new Set<string>();
+  if (recentBriefings && recentBriefings.length > 0) {
+    const briefingIds = recentBriefings.map(b => b.id);
+    const { data: recentCards } = await supabase
+      .from('cards')
+      .select('source_url')
+      .in('briefing_id', briefingIds);
+
+    for (const card of recentCards || []) {
+      if (card.source_url) seenUrls.add(card.source_url);
+    }
+  }
+
   // Allocate cards proportionally across categories
   const allocation = allocateCards(activeCategories, cardsPerBriefing);
 
@@ -268,10 +290,15 @@ export async function generateBriefing(
         }
       }
 
+      // Filter out already-seen articles
+      const freshResults = searchResults.filter(a => !seenUrls.has(a.url));
+      // Fall back to original results if deduplication removes everything
+      const effectiveResults = freshResults.length > 0 ? freshResults : searchResults;
+
       let summaries: CardSummary[];
-      if (searchResults.length > 0) {
+      if (effectiveResults.length > 0) {
         // Check summary_cache
-        const articleUrls = searchResults.map((a) => a.url);
+        const articleUrls = effectiveResults.map((a) => a.url);
         const cacheKey = computeCacheKey(name, articleUrls);
 
         const { data: cachedSummary } = await supabase
@@ -284,7 +311,7 @@ export async function generateBriefing(
           summaries = cachedSummary.summaries as CardSummary[];
         } else {
           const level = expertiseMap.get(name) || 1;
-          summaries = await summarizeArticles(name, searchResults, level);
+          summaries = await summarizeArticles(name, effectiveResults, level);
 
           // Cache the summaries
           if (summaries.length > 0) {
@@ -319,6 +346,8 @@ export async function generateBriefing(
     source_url: string | null;
     source_name: string | null;
     position: number;
+    is_review?: boolean;
+    review_id?: string | null;
   }[] = [];
 
   let position = 0;
@@ -333,6 +362,30 @@ export async function generateBriefing(
         position: position++,
       });
     }
+  }
+
+  // Add spaced repetition review cards
+  const dueReviews = await getDueReviews(supabase, userId, 3);
+  for (const review of dueReviews) {
+    const level = expertiseMap.get(review.category_name) || 1;
+    const reviewCard = await generateReviewCard(
+      review.title,
+      review.original_summary,
+      review.category_name,
+      review.times_reviewed,
+      level
+    );
+
+    allCards.push({
+      category_name: review.category_name,
+      title: reviewCard.title,
+      summary: reviewCard.summary,
+      source_url: review.source_url,
+      source_name: review.source_name,
+      position: position++,
+      is_review: true,
+      review_id: review.id,
+    });
   }
 
   // Create briefing record

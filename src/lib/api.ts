@@ -164,6 +164,17 @@ export const api = {
   removeFromReadingList: (id: string) =>
     request<{ success: boolean }>(`/api/reading-list/${id}`, { method: 'DELETE' }),
 
+  // Feed
+  getFeed: (params: string) =>
+    request<{
+      items: Array<{
+        id: string; title: string; summary: string; source_url: string | null;
+        source_name: string | null; category_name: string; timestamp: string;
+        source: 'liked' | 'saved' | 'both'; is_read?: boolean;
+      }>;
+      has_more: boolean;
+    }>(`/api/feed?${params}`),
+
   // Knowledge/Expertise
   getKnowledge: () =>
     request<{

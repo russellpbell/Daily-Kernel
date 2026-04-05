@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase';
 import { getUserIdFromRequest } from '@/lib/auth';
+import { addToReviewQueue, markReviewed, removeFromReviewQueue } from '@/lib/spaced-repetition';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     // Verify card belongs to user's briefing
     const { data: card } = await supabase
       .from('cards')
-      .select('id, briefing_id, category_name')
+      .select('id, briefing_id, category_name, title, summary, source_url, source_name, is_review, review_id')
       .eq('id', card_id)
       .single();
 

@@ -178,6 +178,12 @@ export default function BriefingPage() {
               {generating ? 'Generating...' : 'New Briefing'}
             </button>
           </div>
+          <Link
+            href="/feed"
+            className="mt-2 text-sm text-primary-light hover:text-primary transition-colors min-h-[44px] flex items-center"
+          >
+            Browse your Interest Feed →
+          </Link>
         </div>
       </>
     );
@@ -188,8 +194,21 @@ export default function BriefingPage() {
 
   return (
     <div className="flex flex-col items-center min-h-[calc(100vh-7.5rem)]">
+      {/* Interest Feed link */}
+      <div className="w-full max-w-sm px-4 pt-4">
+        <Link
+          href="/feed"
+          className="flex items-center justify-center gap-2 text-sm text-primary-light hover:text-primary transition-colors min-h-[44px]"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+            <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Browse your Interest Feed
+        </Link>
+      </div>
+
       {/* Progress */}
-      <div className="w-full max-w-sm px-4 pt-4 flex items-center gap-3">
+      <div className="w-full max-w-sm px-4 pt-2 flex items-center gap-3">
         <div className="flex-1 h-1.5 bg-surface-light rounded-full overflow-hidden">
           <div
             className="h-full bg-primary rounded-full transition-all duration-300 ease-out"

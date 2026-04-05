@@ -188,7 +188,7 @@ async function searchPubMed(
       retmax: String(maxResults),
       sort: 'date',
       datetype: 'edat',
-      reldate: '1',
+      reldate: '7',
       retmode: 'json',
     });
 
@@ -283,24 +283,13 @@ async function searchArXiv(
 
     const xml = await response.text();
 
-    // Parse entries from Atom XML using regex
+    // Parse entries from Atom XML using regex (already sorted by submittedDate descending)
     const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
     const articles: NewsArticle[] = [];
-    const now = Date.now();
-    const oneDayMs = 24 * 60 * 60 * 1000;
 
     let entryMatch;
     while ((entryMatch = entryRegex.exec(xml)) !== null && articles.length < maxResults) {
       const entry = entryMatch[1];
-
-      // Check published date - filter to last 24 hours
-      const publishedMatch = entry.match(/<published>([^<]+)<\/published>/);
-      if (publishedMatch) {
-        const publishedDate = new Date(publishedMatch[1]).getTime();
-        if (now - publishedDate > oneDayMs) {
-          continue;
-        }
-      }
 
       const titleMatch = entry.match(/<title>([\s\S]*?)<\/title>/);
       const idMatch = entry.match(/<id>([\s\S]*?)<\/id>/);
@@ -319,31 +308,6 @@ async function searchArXiv(
         snippet,
         source_name: 'arXiv',
       });
-    }
-
-    // If date filtering removed everything, return unfiltered results (up to maxResults)
-    if (articles.length === 0) {
-      entryRegex.lastIndex = 0;
-      while ((entryMatch = entryRegex.exec(xml)) !== null && articles.length < maxResults) {
-        const entry = entryMatch[1];
-        const titleMatch = entry.match(/<title>([\s\S]*?)<\/title>/);
-        const idMatch = entry.match(/<id>([\s\S]*?)<\/id>/);
-        const summaryMatch = entry.match(/<summary>([\s\S]*?)<\/summary>/);
-
-        const title = (titleMatch?.[1] || 'Untitled').replace(/\s+/g, ' ').trim();
-        const url = (idMatch?.[1] || '').trim();
-        let snippet = (summaryMatch?.[1] || '').replace(/\s+/g, ' ').trim();
-        if (snippet.length > 300) {
-          snippet = snippet.substring(0, 297) + '...';
-        }
-
-        articles.push({
-          title,
-          url,
-          snippet,
-          source_name: 'arXiv',
-        });
-      }
     }
 
     return articles;
@@ -386,13 +350,13 @@ async function searchOpenAlex(
   maxResults: number
 ): Promise<NewsArticle[]> {
   try {
-    // Calculate yesterday's date for the filter
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    // Calculate 7 days ago for the filter
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
 
     const params = new URLSearchParams({
       search: query,
-      filter: `from_publication_date:${yesterdayStr}`,
+      filter: `from_publication_date:${sevenDaysAgoStr}`,
       sort: 'publication_date:desc',
       per_page: String(maxResults),
       mailto: 'dailykernel@app.local',

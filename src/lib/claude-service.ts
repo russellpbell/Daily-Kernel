@@ -136,6 +136,86 @@ function fallbackSummaries(articles: NewsArticle[]): CardSummary[] {
 }
 
 /**
+ * Generate a fresh take on a previously-reviewed paper.
+ * Each review highlights a different aspect: methodology, implications,
+ * practical applications, connections to other work, limitations, etc.
+ */
+export async function generateReviewCard(
+  title: string,
+  originalSummary: string,
+  categoryName: string,
+  timesReviewed: number,
+  expertiseLevel: number = 1
+): Promise<CardSummary> {
+  const client = getClient();
+
+  const angles = [
+    'Focus on the practical applications and real-world implications of this research.',
+    'Highlight the methodology and what makes this approach novel or interesting.',
+    'Explore how this work connects to broader trends in the field.',
+    'Discuss the limitations and open questions this research raises.',
+    'Extract one concrete takeaway or mental model the reader should remember.',
+    'Compare this approach to alternative methods and explain the tradeoffs.',
+    'Explain why this research matters for the future of the field.',
+  ];
+
+  const angle = angles[timesReviewed % angles.length];
+
+  const levelDescriptions: Record<number, string> = {
+    1: 'Use accessible language and explain jargon.',
+    2: 'Use some domain terminology but explain specialized concepts.',
+    3: 'Use domain-specific terminology freely.',
+    4: 'Be technically precise and skip basic explanations.',
+    5: 'Be maximally technical and concise.',
+  };
+
+  const levelContext = levelDescriptions[expertiseLevel] || levelDescriptions[1];
+
+  const systemPrompt = `You are a knowledge curator helping someone build deep expertise through spaced repetition. ${levelContext}`;
+
+  const userPrompt = `This is a paper/article the reader has seen before and wants to deepen their understanding of:
+
+Title: ${title}
+Category: ${categoryName}
+Previous summary: ${originalSummary}
+
+This is review #${timesReviewed + 1}. ${angle}
+
+Write a fresh 2-3 sentence summary that highlights this NEW angle. Don't repeat the original summary - give them something new to think about.
+
+Respond as JSON: {"title": "...", "summary": "..."}`;
+
+  try {
+    const message = await client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 512,
+      messages: [{ role: 'user', content: userPrompt }],
+      system: systemPrompt,
+    });
+
+    const text = message.content[0].type === 'text' ? message.content[0].text : '';
+    let jsonStr = text.trim();
+    const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) jsonStr = jsonMatch[1].trim();
+
+    const parsed = JSON.parse(jsonStr);
+    return {
+      title: String(parsed.title || title),
+      summary: String(parsed.summary || originalSummary),
+      source_url: null,
+      source_name: null,
+    };
+  } catch {
+    return {
+      title: `Review: ${title}`,
+      summary: originalSummary,
+      source_url: null,
+      source_name: null,
+    };
+  }
+}
+
+/**
  * Analyze user feedback data and generate insights about reading preferences.
  * Returns a human-readable string with insights.
  */

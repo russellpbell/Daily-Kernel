@@ -33,6 +33,8 @@ export interface Card {
   source_name: string | null;
   position: number;
   created_at: string;
+  is_review?: boolean;
+  review_id?: string | null;
 }
 
 export interface Feedback {
@@ -114,6 +116,18 @@ export interface UserExpertise {
   level: number;
   topics_covered: number;
   cards_reviewed: number;
+}
+
+export interface ReviewQueueItem {
+  id: string;
+  source_url: string;
+  title: string;
+  original_summary: string;
+  category_name: string;
+  source_name: string | null;
+  times_reviewed: number;
+  next_review_date: string;
+  interval_days: number;
 }
 
 export interface ApiError {

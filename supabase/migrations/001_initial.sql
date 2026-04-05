@@ -38,8 +38,31 @@ CREATE TABLE cards (
   source_url TEXT,
   source_name TEXT,
   position INTEGER NOT NULL DEFAULT 0,
+  is_review BOOLEAN NOT NULL DEFAULT false,
+  review_id UUID,  -- will reference review_queue(id) after that table is created
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Spaced repetition: papers/articles queued for resurfacing
+CREATE TABLE review_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  source_url TEXT NOT NULL,
+  title TEXT NOT NULL,
+  original_summary TEXT NOT NULL,
+  category_name TEXT NOT NULL,
+  source_name TEXT,
+  times_reviewed INTEGER NOT NULL DEFAULT 0,
+  next_review_date DATE NOT NULL,
+  interval_days INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, source_url)
+);
+
+CREATE INDEX idx_review_queue_user_date ON review_queue(user_id, next_review_date);
+
+-- Add foreign key from cards.review_id to review_queue now that review_queue exists
+ALTER TABLE cards ADD CONSTRAINT cards_review_id_fkey FOREIGN KEY (review_id) REFERENCES review_queue(id) ON DELETE SET NULL;
 
 -- Feedback
 CREATE TABLE feedback (
@@ -170,3 +193,6 @@ CREATE POLICY "Service role full access" ON summary_cache FOR ALL USING (true) W
 CREATE POLICY "Service role full access" ON reading_list FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Service role full access" ON knowledge_entries FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Service role full access" ON user_expertise FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE review_queue ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON review_queue FOR ALL USING (true) WITH CHECK (true);
