@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 
 interface BriefingCardProps {
   card: {
@@ -15,6 +15,8 @@ interface BriefingCardProps {
   onPointerDown?: (e: React.PointerEvent) => void;
   onPointerMove?: (e: React.PointerEvent) => void;
   onPointerUp?: (e: React.PointerEvent) => void;
+  onSave?: () => void;
+  isSaved?: boolean;
 }
 
 function categoryColor(name: string): string {
@@ -41,7 +43,22 @@ export default function BriefingCard({
   onPointerDown,
   onPointerMove,
   onPointerUp,
+  onSave,
+  isSaved: isSavedProp = false,
 }: BriefingCardProps) {
+  const [saved, setSaved] = useState(isSavedProp);
+  const [showToast, setShowToast] = useState(false);
+
+  const handleSave = (e: React.PointerEvent | React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (saved) return;
+    setSaved(true);
+    setShowToast(true);
+    onSave?.();
+    setTimeout(() => setShowToast(false), 1500);
+  };
+
   return (
     <div
       className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface to-surface-light border border-white/10 shadow-xl overflow-hidden select-none touch-none"
@@ -51,11 +68,34 @@ export default function BriefingCard({
       onPointerUp={onPointerUp}
     >
       <div className="flex flex-col h-full p-6">
-        <span
-          className={`self-start px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${categoryColor(card.category_name)}`}
-        >
-          {card.category_name}
-        </span>
+        <div className="flex items-start justify-between">
+          <span
+            className={`self-start px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${categoryColor(card.category_name)}`}
+          >
+            {card.category_name}
+          </span>
+          <button
+            onClick={handleSave}
+            onPointerDown={e => e.stopPropagation()}
+            className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
+              saved ? 'text-primary-light' : 'text-slate-400 hover:text-slate-200'
+            }`}
+            aria-label={saved ? 'Saved' : 'Save to reading list'}
+          >
+            <svg viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} className="w-5 h-5">
+              <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        {showToast && (
+          <div
+            className="absolute top-14 right-4 px-3 py-1.5 rounded-lg bg-primary/90 text-white text-xs font-medium"
+            style={{ animation: 'fade-in-up 0.2s ease-out' }}
+          >
+            Saved!
+          </div>
+        )}
 
         <h2 className="mt-4 text-xl font-bold text-white leading-tight line-clamp-3">
           {card.title}

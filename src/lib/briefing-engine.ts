@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { searchCategory } from '@/lib/news-search';
 import { summarizeArticles } from '@/lib/claude-service';
-import { Briefing, CardSummary } from '@/types';
+import { Briefing, CardSummary, NewsArticle } from '@/types';
 
 /**
  * Allocate card counts to categories proportionally based on weights.
@@ -67,8 +67,103 @@ function allocateCards(
 }
 
 /**
+ * Compute a cache key from category name and article URLs.
+ * Simple hash - good enough for cache keys.
+ */
+function computeCacheKey(categoryName: string, articleUrls: string[]): string {
+  const sorted = [...articleUrls].sort().join('|');
+  // Simple hash - good enough for cache keys
+  let hash = 0;
+  const str = `${categoryName}:${sorted}`;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return `${categoryName}-${Math.abs(hash).toString(36)}`;
+}
+
+/**
+ * Update knowledge entries and user expertise after briefing generation.
+ */
+async function updateKnowledge(
+  supabase: SupabaseClient,
+  userId: string,
+  cards: Array<{ category_name: string; title: string }>
+): Promise<void> {
+  // Group cards by category
+  const byCategory = new Map<string, string[]>();
+  for (const card of cards) {
+    const topics = byCategory.get(card.category_name) || [];
+    topics.push(card.title);
+    byCategory.set(card.category_name, topics);
+  }
+
+  for (const [category, topics] of byCategory) {
+    // Update user_expertise
+    await supabase.from('user_expertise').upsert(
+      {
+        user_id: userId,
+        category_name: category,
+        topics_covered: topics.length,  // This will be incremented properly below
+        cards_reviewed: 0,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,category_name', ignoreDuplicates: true }
+    );
+
+    // Increment topics_covered and cards in user_expertise
+    // (We do a raw increment since upsert doesn't support increment)
+    const { data: existing } = await supabase
+      .from('user_expertise')
+      .select('topics_covered')
+      .eq('user_id', userId)
+      .eq('category_name', category)
+      .single();
+
+    if (existing) {
+      await supabase
+        .from('user_expertise')
+        .update({
+          topics_covered: existing.topics_covered + topics.length,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('category_name', category);
+    }
+
+    // Add knowledge entries for each card title as a topic
+    for (const topic of topics) {
+      const { data: entry } = await supabase
+        .from('knowledge_entries')
+        .select('id, times_seen')
+        .eq('user_id', userId)
+        .eq('topic', topic)
+        .single();
+
+      if (entry) {
+        await supabase
+          .from('knowledge_entries')
+          .update({
+            times_seen: entry.times_seen + 1,
+            last_seen_at: new Date().toISOString(),
+          })
+          .eq('id', entry.id);
+      } else {
+        await supabase.from('knowledge_entries').insert({
+          user_id: userId,
+          category_name: category,
+          topic,
+        });
+      }
+    }
+  }
+}
+
+/**
  * Generate a daily briefing for a user.
- * Loads categories, searches news, summarizes with Claude, and stores everything in Supabase.
+ * Loads categories, searches news (with caching), summarizes with Claude (with caching),
+ * tracks knowledge, and stores everything in Supabase.
  * Returns the full briefing object with cards.
  */
 export async function generateBriefing(
@@ -124,18 +219,85 @@ export async function generateBriefing(
       ? categories
       : [{ name: 'General News', weight: 1.0, source_type: 'news' as const }];
 
+  // Load user expertise levels
+  const { data: expertiseLevels } = await supabase
+    .from('user_expertise')
+    .select('category_name, level')
+    .eq('user_id', userId);
+
+  const expertiseMap = new Map<string, number>();
+  for (const e of expertiseLevels || []) {
+    expertiseMap.set(e.category_name, e.level);
+  }
+
   // Allocate cards proportionally across categories
   const allocation = allocateCards(activeCategories, cardsPerBriefing);
 
-  // Search news and summarize for each category in parallel
+  // Search news and summarize for each category in parallel (with caching)
   const categoryResults = await Promise.all(
     allocation.map(async ({ name, count, source_type }) => {
-      // Search for more articles than needed to give Claude good material
-      const searchResults = await searchCategory(name, Math.min(count * 2, 10), source_type || 'news');
+      const sourceType = source_type || 'news';
+
+      // Check search_cache for today's results
+      let searchResults: NewsArticle[];
+      const { data: cachedSearch } = await supabase
+        .from('search_cache')
+        .select('results')
+        .eq('category_name', name)
+        .eq('source_type', sourceType)
+        .eq('date', today)
+        .single();
+
+      if (cachedSearch) {
+        searchResults = cachedSearch.results as NewsArticle[];
+      } else {
+        // Search for more articles than needed to give Claude good material
+        searchResults = await searchCategory(name, Math.min(count * 2, 10), sourceType);
+
+        // Cache the search results
+        if (searchResults.length > 0) {
+          await supabase.from('search_cache').upsert(
+            {
+              category_name: name,
+              source_type: sourceType,
+              date: today,
+              results: searchResults,
+            },
+            { onConflict: 'category_name,source_type,date' }
+          );
+        }
+      }
 
       let summaries: CardSummary[];
       if (searchResults.length > 0) {
-        summaries = await summarizeArticles(name, searchResults);
+        // Check summary_cache
+        const articleUrls = searchResults.map((a) => a.url);
+        const cacheKey = computeCacheKey(name, articleUrls);
+
+        const { data: cachedSummary } = await supabase
+          .from('summary_cache')
+          .select('summaries')
+          .eq('cache_key', cacheKey)
+          .single();
+
+        if (cachedSummary) {
+          summaries = cachedSummary.summaries as CardSummary[];
+        } else {
+          const level = expertiseMap.get(name) || 1;
+          summaries = await summarizeArticles(name, searchResults, level);
+
+          // Cache the summaries
+          if (summaries.length > 0) {
+            await supabase.from('summary_cache').upsert(
+              {
+                cache_key: cacheKey,
+                category_name: name,
+                summaries,
+              },
+              { onConflict: 'cache_key' }
+            );
+          }
+        }
       } else {
         // No search results; return empty for this category
         summaries = [];
@@ -222,6 +384,9 @@ export async function generateBriefing(
     },
     { onConflict: 'user_id,date' }
   );
+
+  // Update knowledge tracking
+  await updateKnowledge(supabase, userId, allCards);
 
   return {
     id: briefing.id,

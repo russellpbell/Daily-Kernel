@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Verify card belongs to user's briefing
     const { data: card } = await supabase
       .from('cards')
-      .select('id, briefing_id')
+      .select('id, briefing_id, category_name')
       .eq('id', card_id)
       .single();
 
@@ -136,6 +136,32 @@ export async function POST(request: NextRequest) {
             })
             .eq('user_id', userId);
         }
+      }
+    }
+
+    // Update user expertise
+    if (card && action === 'thumbs_up') {
+      const { data: expertise } = await supabase
+        .from('user_expertise')
+        .select('id, cards_reviewed, level')
+        .eq('user_id', userId)
+        .eq('category_name', card.category_name)
+        .single();
+
+      if (expertise) {
+        const newReviewed = expertise.cards_reviewed + 1;
+        // Level up thresholds: 10, 30, 75, 150, 300
+        const thresholds = [0, 10, 30, 75, 150, 300];
+        let newLevel = 1;
+        for (let i = thresholds.length - 1; i >= 0; i--) {
+          if (newReviewed >= thresholds[i]) { newLevel = i + 1; break; }
+        }
+        newLevel = Math.min(newLevel, 5);
+
+        await supabase
+          .from('user_expertise')
+          .update({ cards_reviewed: newReviewed, level: newLevel, updated_at: new Date().toISOString() })
+          .eq('id', expertise.id);
       }
     }
 

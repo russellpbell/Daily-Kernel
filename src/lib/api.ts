@@ -137,6 +137,42 @@ export const api = {
       }>;
     }>('/api/stats'),
 
+  // Reading List
+  getReadingList: (readFilter?: boolean) => {
+    const params = readFilter !== undefined ? `?read=${readFilter}` : '';
+    return request<{ items: Array<{
+      id: string; card_id: string | null; title: string; summary: string;
+      source_url: string | null; source_name: string | null; category_name: string;
+      notes: string | null; is_read: boolean; saved_at: string;
+    }> }>(`/api/reading-list${params}`);
+  },
+
+  saveToReadingList: (data: {
+    card_id?: string; title: string; summary: string;
+    source_url?: string; source_name?: string; category_name: string;
+  }) => request<{ item: { id: string } }>('/api/reading-list', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  updateReadingListItem: (id: string, updates: { is_read?: boolean; notes?: string }) =>
+    request<{ item: { id: string } }>(`/api/reading-list/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    }),
+
+  removeFromReadingList: (id: string) =>
+    request<{ success: boolean }>(`/api/reading-list/${id}`, { method: 'DELETE' }),
+
+  // Knowledge/Expertise
+  getKnowledge: () =>
+    request<{
+      expertise: Array<{ category_name: string; level: number; topics_covered: number; cards_reviewed: number }>;
+      recent_topics: Array<{ topic: string; category_name: string; times_seen: number; last_seen_at: string }>;
+      total_topics: number;
+      total_cards_reviewed: number;
+    }>('/api/knowledge'),
+
   // Settings
   getSettings: () =>
     request<{

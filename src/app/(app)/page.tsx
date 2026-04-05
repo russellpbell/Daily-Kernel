@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useBriefing } from '@/hooks/useBriefing';
+import { api } from '@/lib/api';
 import CardStack from '@/components/CardStack';
 import FeedbackButtons from '@/components/FeedbackButtons';
 import EmptyState from '@/components/EmptyState';
@@ -72,6 +73,43 @@ export default function BriefingPage() {
     sendFeedback,
   } = useBriefing();
 
+  const [savedCardIds, setSavedCardIds] = useState<Set<string>>(new Set());
+
+  const handleSaveCard = useCallback(async (card: { id: string; title: string; summary: string; source_url: string | null; source_name: string | null; category_name: string }) => {
+    try {
+      await api.saveToReadingList({
+        card_id: card.id,
+        title: card.title,
+        summary: card.summary,
+        source_url: card.source_url ?? undefined,
+        source_name: card.source_name ?? undefined,
+        category_name: card.category_name,
+      });
+      setSavedCardIds(prev => new Set(prev).add(card.id));
+    } catch (e) {
+      console.error('Failed to save card:', e);
+    }
+  }, []);
+
+  // Save current card to reading list and advance
+  const handleSaveAndAdvance = useCallback(async () => {
+    const card = remainingCards[0];
+    if (!card) return;
+    await handleSaveCard(card);
+    sendFeedback('skip'); // Record as skip in feedback, but saved to reading list
+  }, [remainingCards, handleSaveCard, sendFeedback]);
+
+  // Swipe gestures: right = learned, left = not interested, up = save to reading list
+  const handleSwipe = useCallback((direction: 'left' | 'right' | 'up') => {
+    if (direction === 'right') {
+      sendFeedback('thumbs_up');
+    } else if (direction === 'up') {
+      handleSaveAndAdvance();
+    } else {
+      sendFeedback('thumbs_down');
+    }
+  }, [sendFeedback, handleSaveAndAdvance]);
+
   if (loading) return <LoadingSkeleton />;
 
   if (error) {
@@ -120,23 +158,33 @@ export default function BriefingPage() {
           <p className="text-slate-400 text-center max-w-xs">
             You reviewed all {totalCards} cards today. Your streak has been updated!
           </p>
-          <button
-            onClick={generate}
-            disabled={generating}
-            className="mt-4 px-6 py-3 min-h-[44px] rounded-xl bg-primary hover:bg-primary-light text-white font-semibold transition-colors disabled:opacity-50"
-          >
-            {generating ? 'Generating...' : 'Generate New Briefing'}
-          </button>
+          {savedCardIds.size > 0 && (
+            <p className="text-blue-400 text-sm">
+              {savedCardIds.size} card{savedCardIds.size !== 1 ? 's' : ''} saved to your reading list
+            </p>
+          )}
+          <div className="flex gap-3 mt-4">
+            <Link
+              href="/library"
+              className="px-5 py-3 min-h-[44px] rounded-xl bg-surface border border-white/10 text-white font-medium transition-colors hover:bg-surface-light"
+            >
+              View Library
+            </Link>
+            <button
+              onClick={generate}
+              disabled={generating}
+              className="px-5 py-3 min-h-[44px] rounded-xl bg-primary hover:bg-primary-light text-white font-semibold transition-colors disabled:opacity-50"
+            >
+              {generating ? 'Generating...' : 'New Briefing'}
+            </button>
+          </div>
         </div>
       </>
     );
   }
 
-  const handleSwipe = (direction: 'left' | 'right' | 'up') => {
-    if (direction === 'right') sendFeedback('thumbs_up');
-    else if (direction === 'left') sendFeedback('thumbs_down');
-    else sendFeedback('skip');
-  };
+  const currentCard = remainingCards[0];
+  const isCurrentSaved = currentCard ? savedCardIds.has(currentCard.id) : false;
 
   return (
     <div className="flex flex-col items-center min-h-[calc(100vh-7.5rem)]">
@@ -153,19 +201,30 @@ export default function BriefingPage() {
         </span>
       </div>
 
+      {/* Swipe hint (first card only) */}
+      {reviewedCount === 0 && (
+        <div className="text-[11px] text-slate-500 mt-2 flex gap-4">
+          <span>← Skip</span>
+          <span>↑ Save</span>
+          <span>Learned →</span>
+        </div>
+      )}
+
       {/* Card stack */}
       <div className="flex-1 flex items-center justify-center w-full max-w-sm px-4 py-6">
         <div className="relative w-full" style={{ height: 400 }}>
-          <CardStack cards={remainingCards} onSwipe={handleSwipe} />
+          <CardStack cards={remainingCards} onSwipe={handleSwipe} onSaveCard={handleSaveCard} savedCardIds={savedCardIds} />
         </div>
       </div>
 
-      {/* Feedback buttons */}
+      {/* Action buttons */}
       <div className="pb-4 px-4">
         <FeedbackButtons
-          onThumbsDown={() => sendFeedback('thumbs_down')}
-          onSkip={() => sendFeedback('skip')}
-          onThumbsUp={() => sendFeedback('thumbs_up')}
+          onNotInterested={() => sendFeedback('thumbs_down')}
+          onSaveToReadingList={handleSaveAndAdvance}
+          onLearned={() => sendFeedback('thumbs_up')}
+          isSaved={isCurrentSaved}
+          disabled={remainingCards.length === 0}
         />
       </div>
     </div>

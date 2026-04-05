@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NewsArticle, CardSummary } from '@/types';
 
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 
 function getClient(): Anthropic {
   return new Anthropic({
@@ -15,7 +15,8 @@ function getClient(): Anthropic {
  */
 export async function summarizeArticles(
   categoryName: string,
-  articles: NewsArticle[]
+  articles: NewsArticle[],
+  expertiseLevel: number = 1
 ): Promise<CardSummary[]> {
   if (articles.length === 0) {
     return [];
@@ -30,7 +31,26 @@ export async function summarizeArticles(
     )
     .join('\n\n');
 
-  const systemPrompt = `You are a news curator for a daily briefing app called Daily Kernel. Your job is to create concise, informative card summaries from news articles. Each card should give the reader a quick understanding of the key story in 2-3 sentences. Be factual, neutral, and focus on what matters most. Avoid sensationalism. If multiple articles cover the same story, consolidate them into one card and pick the best source.`;
+  const levelDescriptions: Record<number, string> = {
+    1: 'The reader is a beginner. Use accessible language, explain jargon, and focus on "why this matters" context. Think of explaining to a curious friend.',
+    2: 'The reader is getting familiar with this field. You can use some domain terminology but still explain specialized concepts. Connect new developments to foundational concepts.',
+    3: 'The reader has intermediate knowledge. Use domain-specific terminology freely. Focus on the methodology, significance, and implications rather than basic context.',
+    4: 'The reader is advanced. Be technically precise. Highlight novel methodologies, unexpected findings, and connections to related work. Skip basic explanations.',
+    5: 'The reader is an expert. Be maximally technical and concise. Focus on what is genuinely novel, methodological innovations, and potential impact on the field. Reference related frameworks by name.',
+  };
+
+  const expertiseContext = levelDescriptions[expertiseLevel] || levelDescriptions[1];
+
+  const systemPrompt = `You are a knowledge curator for Daily Kernel, an app that helps people become experts in their fields through daily bite-sized learning.
+
+${expertiseContext}
+
+Your job is to create concise, engaging card summaries that help the reader build expertise over time. Each card should:
+- Give a clear understanding of the key development in 2-3 sentences
+- Connect it to broader trends or prior knowledge when relevant
+- Highlight one specific insight or takeaway the reader should remember
+
+Be factual and precise. If multiple articles cover the same story, consolidate into one card. For academic papers, emphasize the key finding and why it matters.`;
 
   const userPrompt = `Category: ${categoryName}
 

@@ -2,10 +2,20 @@
 
 import { useState } from 'react';
 import { useStats } from '@/hooks/useStats';
+import { useKnowledge, getLevelLabel, getLevelProgress, getNextThreshold } from '@/hooks/useKnowledge';
 import ProgressHeatmap from '@/components/ProgressHeatmap';
+
+const LEVEL_COLORS: Record<number, { text: string; bar: string }> = {
+  1: { text: 'text-slate-400', bar: 'bg-slate-400' },
+  2: { text: 'text-cyan-400', bar: 'bg-cyan-400' },
+  3: { text: 'text-amber-400', bar: 'bg-amber-400' },
+  4: { text: 'text-violet-400', bar: 'bg-violet-400' },
+  5: { text: 'text-emerald-400', bar: 'bg-emerald-400' },
+};
 
 export default function StatsPage() {
   const { data, loading, error } = useStats();
+  const { expertise, loading: knowledgeLoading } = useKnowledge();
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -116,6 +126,72 @@ export default function StatsPage() {
           </button>
         </div>
         <ProgressHeatmap year={viewYear} month={viewMonth} completions={completions} />
+      </div>
+
+      {/* Expertise section */}
+      <div className="mt-6">
+        <h3 className="text-sm font-semibold text-white mb-3">Expertise</h3>
+        {knowledgeLoading ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map(i => (
+              <div
+                key={i}
+                className="h-20 rounded-xl bg-surface/60"
+                style={{
+                  background: 'linear-gradient(90deg, var(--color-surface) 25%, var(--color-surface-light) 50%, var(--color-surface) 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 1.5s infinite',
+                }}
+              />
+            ))}
+          </div>
+        ) : expertise.length === 0 ? (
+          <div className="rounded-xl bg-surface border border-white/5 p-6 text-center">
+            <p className="text-xs text-slate-500">
+              Review briefing cards to build your expertise
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {expertise.map(item => {
+              const progress = getLevelProgress(item.cards_reviewed, item.level);
+              const label = getLevelLabel(item.level);
+              const nextThreshold = getNextThreshold(item.level);
+              const colors = LEVEL_COLORS[item.level] || LEVEL_COLORS[1];
+
+              return (
+                <div
+                  key={item.category_name}
+                  className="rounded-xl bg-surface border border-white/5 p-4"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-white">{item.category_name}</span>
+                    <span className={`text-xs font-semibold ${colors.text}`}>
+                      {label}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-bg/60 rounded-full overflow-hidden mb-2">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${colors.bar}`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-600">
+                      {item.topics_covered} topics
+                    </span>
+                    <span className="text-[10px] text-slate-600">
+                      {item.level < 5
+                        ? `${item.cards_reviewed}/${nextThreshold} cards`
+                        : `${item.cards_reviewed} cards`
+                      }
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

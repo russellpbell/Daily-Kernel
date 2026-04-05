@@ -16,9 +16,11 @@ interface Card {
 interface CardStackProps {
   cards: Card[];
   onSwipe: (direction: SwipeDirection) => void;
+  onSaveCard?: (card: Card) => void;
+  savedCardIds?: Set<string>;
 }
 
-export default function CardStack({ cards, onSwipe }: CardStackProps) {
+export default function CardStack({ cards, onSwipe, onSaveCard, savedCardIds }: CardStackProps) {
   const { offset, direction, handlers } = useSwipe(onSwipe);
   const visibleCards = cards.slice(0, 3);
 
@@ -31,17 +33,17 @@ export default function CardStack({ cards, onSwipe }: CardStackProps) {
         <div className="absolute inset-0 z-30 flex items-start justify-center pt-8 pointer-events-none">
           {direction === 'right' && (
             <span className="px-4 py-2 rounded-lg bg-emerald-500/30 border-2 border-emerald-400 text-emerald-300 font-bold text-lg -rotate-12">
-              LIKE
+              LEARNED
             </span>
           )}
           {direction === 'left' && (
             <span className="px-4 py-2 rounded-lg bg-rose-500/30 border-2 border-rose-400 text-rose-300 font-bold text-lg rotate-12">
-              NOPE
+              SKIP
             </span>
           )}
           {direction === 'up' && (
-            <span className="px-4 py-2 rounded-lg bg-slate-500/30 border-2 border-slate-400 text-slate-300 font-bold text-lg">
-              SKIP
+            <span className="px-4 py-2 rounded-lg bg-blue-500/30 border-2 border-blue-400 text-blue-300 font-bold text-lg">
+              SAVE
             </span>
           )}
         </div>
@@ -69,6 +71,8 @@ export default function CardStack({ cards, onSwipe }: CardStackProps) {
             onPointerDown={isTop ? handlers.onPointerDown : undefined}
             onPointerMove={isTop ? handlers.onPointerMove : undefined}
             onPointerUp={isTop ? handlers.onPointerUp : undefined}
+            onSave={onSaveCard ? () => onSaveCard(card) : undefined}
+            isSaved={savedCardIds?.has(card.id)}
           />
         );
       })}

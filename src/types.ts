@@ -86,6 +86,36 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface ReadingListItem {
+  id: string;
+  card_id: string | null;
+  title: string;
+  summary: string;
+  source_url: string | null;
+  source_name: string | null;
+  category_name: string;
+  notes: string | null;
+  is_read: boolean;
+  saved_at: string;
+}
+
+export interface KnowledgeEntry {
+  id: string;
+  category_name: string;
+  topic: string;
+  times_seen: number;
+  first_seen_at: string;
+  last_seen_at: string;
+  expertise_level: number;
+}
+
+export interface UserExpertise {
+  category_name: string;
+  level: number;
+  topics_covered: number;
+  cards_reviewed: number;
+}
+
 export interface ApiError {
   error: string;
 }
