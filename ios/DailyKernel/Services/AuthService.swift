@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import AuthenticationServices
 
 @MainActor
 class AuthService: ObservableObject {
@@ -47,6 +48,63 @@ class AuthService: ObservableObject {
             // the user may just be offline.
             // refreshSession signs out on auth failures; network errors
             // propagate as-is, so we leave the session intact for offline use.
+        }
+    }
+
+    func handleAppleSignIn(authorization: ASAuthorization) async throws {
+        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+              let identityToken = credential.identityToken,
+              let tokenString = String(data: identityToken, encoding: .utf8) else {
+            throw APIError.serverError("Invalid Apple credential")
+        }
+
+        // Exchange Apple token with Supabase
+        let url = URL(string: "\(supabaseURL)/auth/v1/token?grant_type=id_token")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(supabaseAnonKey, forHTTPHeaderField: "apikey")
+
+        var body: [String: Any] = [
+            "provider": "apple",
+            "id_token": tokenString,
+        ]
+
+        // Apple only provides name/email on first sign-in
+        if let email = credential.email {
+            body["email"] = email
+        }
+        if let fullName = credential.fullName {
+            let name = [fullName.givenName, fullName.familyName]
+                .compactMap { $0 }
+                .joined(separator: " ")
+            if !name.isEmpty {
+                body["name"] = name
+            }
+        }
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode < 400 else {
+            throw APIError.serverError("Apple sign-in failed")
+        }
+
+        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let token = json["access_token"] as? String {
+            self.accessToken = token
+            self.userEmail = credential.email ?? "apple-user"
+            self.isAuthenticated = true
+
+            if let refreshToken = json["refresh_token"] as? String {
+                UserDefaults.standard.set(refreshToken, forKey: "refresh_token")
+            }
+
+            UserDefaults.standard.set(token, forKey: "access_token")
+            UserDefaults.standard.set(self.userEmail, forKey: "user_email")
+
+            try? await ensureProfile()
         }
     }
 

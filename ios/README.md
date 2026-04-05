@@ -34,8 +34,17 @@ The `Assets.xcassets` folder includes:
 
 Add `DailyKernel.entitlements` to the project and enable:
 - Push Notifications (aps-environment)
+- Sign in with Apple (com.apple.developer.applesignin)
 
-### 5. Set Environment Variables
+### 5. Set Up Sign in with Apple
+
+1. **Apple Developer Portal**: Go to Certificates, Identifiers & Profiles -> Identifiers. Select your App ID (`com.dailykernel.DailyKernel`) and enable the "Sign in with Apple" capability.
+2. **Create a Service ID** (for Supabase server-side verification): Register a new Services ID under Identifiers -> Services IDs. Configure the web authentication redirect URL to your Supabase project callback: `https://your-project.supabase.co/auth/v1/callback`.
+3. **Generate a Key**: Under Keys, create a new key with "Sign in with Apple" enabled. Download the `.p8` file and note the Key ID.
+4. **Supabase Dashboard**: Go to Authentication -> Providers -> Apple -> Enable. Enter your Service ID, Team ID, Key ID, and upload the `.p8` private key.
+5. **Xcode**: Open the project, go to Signing & Capabilities, click "+ Capability", and add "Sign in with Apple".
+
+### 6. Set Environment Variables
 
 In Xcode: Product → Scheme → Edit Scheme → Run → Arguments → Environment Variables:
 
@@ -45,7 +54,7 @@ In Xcode: Product → Scheme → Edit Scheme → Run → Arguments → Environme
 | `SUPABASE_URL` | `https://your-project.supabase.co` |
 | `SUPABASE_ANON_KEY` | Your Supabase anon key |
 
-### 6. Build & Run
+### 7. Build & Run
 
 - Select an iPhone 15 simulator or your device
 - Press ⌘R to build and run
@@ -62,7 +71,7 @@ DailyKernel/
 ├── Models/                      # Codable data models
 ├── Services/
 │   ├── APIClient.swift          # HTTP client for backend API
-│   ├── AuthService.swift        # Supabase auth (magic link + OTP)
+│   ├── AuthService.swift        # Supabase auth (Sign in with Apple + OTP fallback)
 │   └── NotificationService.swift # Push notifications
 ├── Views/
 │   ├── Auth/                    # Login + OTP verification
