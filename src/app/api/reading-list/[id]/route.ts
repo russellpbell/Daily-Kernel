@@ -35,6 +35,9 @@ export async function PATCH(
       updates.is_read = body.is_read;
     }
     if (typeof body.notes === 'string') {
+      if (body.notes.length > 10000) {
+        return NextResponse.json({ error: 'Notes must be 10000 characters or less' }, { status: 400 });
+      }
       updates.notes = body.notes;
     }
 

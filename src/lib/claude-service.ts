@@ -3,6 +3,24 @@ import { NewsArticle, CardSummary } from '@/types';
 
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 
+/**
+ * Sanitize user-provided text before interpolating into LLM prompts.
+ * Truncates to maxLength, strips control characters and newlines,
+ * and escapes instruction-like patterns.
+ */
+export function sanitizeForPrompt(text: string, maxLength: number): string {
+  let sanitized = text.slice(0, maxLength);
+  // Strip control characters (keep space)
+  sanitized = sanitized.replace(/[\x00-\x09\x0B-\x1F\x7F]/g, '');
+  // Replace newlines with spaces
+  sanitized = sanitized.replace(/[\r\n]+/g, ' ');
+  // Escape instruction-like patterns (e.g., "SYSTEM:", "ASSISTANT:", "Human:", etc.)
+  sanitized = sanitized.replace(/(system|assistant|human|user|instruction|ignore previous|forget|disregard)\s*:/gi, (match) =>
+    match.replace(/:/g, '\uFF1A')
+  );
+  return sanitized.trim();
+}
+
 function getClient(): Anthropic {
   return new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -24,10 +42,12 @@ export async function summarizeArticles(
 
   const client = getClient();
 
+  const safeCategoryName = sanitizeForPrompt(categoryName, 200);
+
   const articlesText = articles
     .map(
       (a, i) =>
-        `Article ${i + 1}:\nTitle: ${a.title}\nSource: ${a.source_name}\nURL: ${a.url}\nSnippet: ${a.snippet}`
+        `Article ${i + 1}:\nTitle: ${sanitizeForPrompt(a.title, 500)}\nSource: ${sanitizeForPrompt(a.source_name || '', 200)}\nURL: ${a.url}\nSnippet: ${sanitizeForPrompt(a.snippet || '', 500)}`
     )
     .join('\n\n');
 
@@ -52,7 +72,7 @@ Your job is to create concise, engaging card summaries that help the reader buil
 
 Be factual and precise. If multiple articles cover the same story, consolidate into one card. For academic papers, emphasize the key finding and why it matters.`;
 
-  const userPrompt = `Category: ${categoryName}
+  const userPrompt = `Category: ${safeCategoryName}
 
 Here are the articles to summarize:
 
@@ -173,11 +193,15 @@ export async function generateReviewCard(
 
   const systemPrompt = `You are a knowledge curator helping someone build deep expertise through spaced repetition. ${levelContext}`;
 
+  const safeTitle = sanitizeForPrompt(title, 500);
+  const safeCatName = sanitizeForPrompt(categoryName, 200);
+  const safeSummary = sanitizeForPrompt(originalSummary, 500);
+
   const userPrompt = `This is a paper/article the reader has seen before and wants to deepen their understanding of:
 
-Title: ${title}
-Category: ${categoryName}
-Previous summary: ${originalSummary}
+Title: ${safeTitle}
+Category: ${safeCatName}
+Previous summary: ${safeSummary}
 
 This is review #${timesReviewed + 1}. ${angle}
 

@@ -175,9 +175,7 @@ struct CardStackView: View {
 
         withAnimation(.easeOut(duration: 0.3)) {
             dragOffset = exitOffset
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        } completion: {
             dragOffset = .zero
             dragDirection = nil
             if !cards.isEmpty {

@@ -19,18 +19,8 @@ export async function POST(request: NextRequest) {
       .eq('date', today);
 
     // Generate new briefing
-    const briefingId = await generateBriefing(supabase, userId);
-
-    // Load the new briefing with cards
-    const { data: briefing } = await supabase
-      .from('briefings')
-      .select('id, date, generated_at')
-      .eq('id', briefingId)
-      .single();
-
-    if (!briefing) {
-      return NextResponse.json({ error: 'Failed to load briefing' }, { status: 500 });
-    }
+    const generated = await generateBriefing(supabase, userId);
+    const briefing = { id: generated.id, date: generated.date, generated_at: generated.generated_at };
 
     const { data: cards } = await supabase
       .from('cards')

@@ -21,14 +21,23 @@ export async function GET(request: NextRequest) {
 
     // Generate if no briefing exists
     if (!briefing) {
-      const briefingId = await generateBriefing(supabase, userId);
-      const { data: newBriefing } = await supabase
-        .from('briefings')
-        .select('id, date, generated_at')
-        .eq('id', briefingId)
-        .single();
-
-      briefing = newBriefing;
+      try {
+        const generated = await generateBriefing(supabase, userId);
+        briefing = { id: generated.id, date: generated.date, generated_at: generated.generated_at };
+      } catch (err: unknown) {
+        // Handle unique constraint violation (race condition: another request generated it)
+        if (err instanceof Error && err.message?.includes('unique')) {
+          const { data: raceBriefing } = await supabase
+            .from('briefings')
+            .select('id, date, generated_at')
+            .eq('user_id', userId)
+            .eq('date', today)
+            .single();
+          briefing = raceBriefing;
+        } else {
+          throw err;
+        }
+      }
     }
 
     if (!briefing) {

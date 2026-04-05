@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     // Get last 20 knowledge entries ordered by last_seen_at desc
     const { data: recentTopics, error: topicsError } = await supabase
-      .from('user_knowledge')
+      .from('knowledge_entries')
       .select('topic, category_name, times_seen, last_seen_at')
       .eq('user_id', userId)
       .order('last_seen_at', { ascending: false })
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Count distinct knowledge entries
     const { count: totalTopics, error: countError } = await supabase
-      .from('user_knowledge')
+      .from('knowledge_entries')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId);
 

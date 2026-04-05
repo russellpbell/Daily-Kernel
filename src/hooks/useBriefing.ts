@@ -89,23 +89,18 @@ export function useBriefing() {
   }, []);
 
   const sendFeedback = useCallback(async (action: 'thumbs_up' | 'thumbs_down' | 'skip') => {
-    const card = state.cards[state.currentIndex];
-    if (!card) return;
-
-    try {
-      await api.sendFeedback(card.id, action);
-    } catch {
-      // Feedback errors are non-blocking
-    }
-
     setState(s => {
-      const nextIndex = s.currentIndex + 1;
-      if (nextIndex >= s.cards.length) {
-        return { ...s, currentIndex: nextIndex, completed: true };
+      const card = s.cards[s.currentIndex];
+      if (card) {
+        // Fire and forget - don't await inside setState
+        api.sendFeedback(card.id, action).catch(() => {});
       }
-      return { ...s, currentIndex: nextIndex };
+      const nextIndex = s.currentIndex + 1;
+      return nextIndex >= s.cards.length
+        ? { ...s, currentIndex: nextIndex, completed: true }
+        : { ...s, currentIndex: nextIndex };
     });
-  }, [state.cards, state.currentIndex]);
+  }, []);
 
   return {
     cards: state.cards,

@@ -22,6 +22,31 @@ class AuthService: ObservableObject {
             self.accessToken = token
             self.userEmail = email
             self.isAuthenticated = true
+
+            // Validate session in the background
+            Task { [weak self] in
+                await self?.validateSession()
+            }
+        }
+    }
+
+    func validateSession() async {
+        guard isAuthenticated else { return }
+
+        // If we have a refresh token, proactively refresh to ensure a valid session
+        guard UserDefaults.standard.string(forKey: "refresh_token") != nil else {
+            // No refresh token stored - can't validate, leave state as-is
+            return
+        }
+
+        do {
+            try await refreshSession()
+        } catch {
+            // refreshSession() already calls signOut() on failure,
+            // but if it's a network error we don't want to sign out -
+            // the user may just be offline.
+            // refreshSession signs out on auth failures; network errors
+            // propagate as-is, so we leave the session intact for offline use.
         }
     }
 

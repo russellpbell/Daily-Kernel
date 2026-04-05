@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
@@ -15,6 +16,7 @@ struct SettingsView: View {
     @State private var showError = false
     @State private var showSignOutConfirm = false
     @State private var saveSuccess = false
+    @State private var showNotificationDeniedAlert = false
 
     private let api = APIClient.shared
 
@@ -170,6 +172,16 @@ struct SettingsView: View {
             } message: {
                 Text(errorMessage ?? "Something went wrong")
             }
+            .alert("Notifications Disabled", isPresented: $showNotificationDeniedAlert) {
+                Button("Open Settings") {
+                    if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(settingsURL)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Notification permission was denied. Please enable notifications in the Settings app to receive daily briefing reminders.")
+            }
             .confirmationDialog(
                 "Sign out of Daily Kernel?",
                 isPresented: $showSignOutConfirm,
@@ -236,11 +248,24 @@ struct SettingsView: View {
     private func handleNotificationToggle(_ enabled: Bool) {
         if enabled {
             Task {
+                // Check current system permission status first
+                await notificationService.checkPermissionStatus()
+                let settings = await UNUserNotificationCenter.current().notificationSettings()
+
+                if settings.authorizationStatus == .denied {
+                    // Permission was previously denied at the system level;
+                    // requestPermission() won't show a prompt again.
+                    notificationsEnabled = false
+                    showNotificationDeniedAlert = true
+                    return
+                }
+
                 let granted = await notificationService.requestPermission()
                 if granted {
                     notificationService.scheduleDailyReminder(hour: 8, minute: 0)
                 } else {
                     notificationsEnabled = false
+                    showNotificationDeniedAlert = true
                 }
             }
         } else {

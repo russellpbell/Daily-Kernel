@@ -49,7 +49,7 @@ export const api = {
           position: number;
         }>;
       } | null;
-    }>(`/api/briefing${date ? `?date=${date}` : ''}`),
+    }>(`/api/briefings/today${date ? `?date=${date}` : ''}`),
 
   generateBriefing: () =>
     request<{
@@ -66,7 +66,7 @@ export const api = {
           position: number;
         }>;
       };
-    }>('/api/briefing/generate', {
+    }>('/api/briefings/generate', {
       method: 'POST',
     }),
 

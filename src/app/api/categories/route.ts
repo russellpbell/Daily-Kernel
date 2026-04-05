@@ -34,8 +34,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, weight, source_type } = body;
 
-    if (!name) {
+    const VALID_SOURCE_TYPES = ['news', 'biomedical', 'stem', 'academic', 'curriculum'];
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({ error: 'Category name is required' }, { status: 400 });
+    }
+
+    const trimmedName = name.trim();
+
+    if (trimmedName.length > 100) {
+      return NextResponse.json({ error: 'Category name must be 100 characters or less' }, { status: 400 });
+    }
+
+    if (source_type && !VALID_SOURCE_TYPES.includes(source_type)) {
+      return NextResponse.json(
+        { error: `source_type must be one of: ${VALID_SOURCE_TYPES.join(', ')}` },
+        { status: 400 }
+      );
     }
 
     // Check for duplicate name per user
@@ -43,16 +58,16 @@ export async function POST(request: NextRequest) {
       .from('categories')
       .select('id')
       .eq('user_id', userId)
-      .eq('name', name)
+      .eq('name', trimmedName)
       .single();
 
     if (existing) {
       return NextResponse.json({ error: 'Category with this name already exists' }, { status: 409 });
     }
 
-    const insertData: { user_id: string; name: string; weight?: number; source_type?: string } = { user_id: userId, name };
+    const insertData: { user_id: string; name: string; weight?: number; source_type?: string } = { user_id: userId, name: trimmedName };
     if (weight !== undefined) insertData.weight = weight;
-    if (source_type && ['news', 'biomedical', 'stem', 'academic'].includes(source_type)) {
+    if (source_type && VALID_SOURCE_TYPES.includes(source_type)) {
       insertData.source_type = source_type;
     }
 

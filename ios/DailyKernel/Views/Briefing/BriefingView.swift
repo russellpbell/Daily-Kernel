@@ -13,6 +13,7 @@ struct BriefingView: View {
     @State private var savedCardIds: Set<String> = []
     @State private var showFeed = false
     @State private var confettiVisible = false
+    @State private var loadTask: Task<Void, Never>?
 
     private let api = APIClient.shared
 
@@ -54,7 +55,11 @@ struct BriefingView: View {
                 Text(errorMessage ?? "Something went wrong")
             }
             .task {
-                await loadBriefing()
+                loadTask = Task { await loadBriefing() }
+                await loadTask?.value
+            }
+            .onDisappear {
+                loadTask?.cancel()
             }
         }
     }

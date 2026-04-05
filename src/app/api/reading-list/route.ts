@@ -51,6 +51,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (typeof title !== 'string' || title.length > 500) {
+      return NextResponse.json({ error: 'Title must be 500 characters or less' }, { status: 400 });
+    }
+
+    if (typeof summary !== 'string' || summary.length > 10000) {
+      return NextResponse.json({ error: 'Summary must be 10000 characters or less' }, { status: 400 });
+    }
+
+    if (source_url && (typeof source_url !== 'string' || !source_url.startsWith('http'))) {
+      return NextResponse.json({ error: 'Source URL must start with http' }, { status: 400 });
+    }
+
     // Prevent duplicates by card_id if provided
     if (card_id) {
       const { data: existing } = await supabase

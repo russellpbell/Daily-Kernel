@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { searchCategory } from '@/lib/news-search';
 import { NewsArticle } from '@/types';
+import { sanitizeForPrompt } from '@/lib/claude-service';
 
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 
@@ -91,7 +92,9 @@ Aim for 60-100 topics total, roughly distributed as:
 - Level 4: 10-15 topics
 - Level 5: 5-10 topics`;
 
-  const userPrompt = `Create a comprehensive learning path for: "${categoryName}"
+  const safeCategoryName = sanitizeForPrompt(categoryName, 200);
+
+  const userPrompt = `Create a comprehensive learning path for: "${safeCategoryName}"
 
 Return a JSON array where each element has:
 - "topic": Topic name (concise, 3-8 words)
@@ -197,14 +200,18 @@ export async function generateLessonCard(
     ? '\n- When research articles are provided, integrate their findings naturally into your teaching. For advanced learners, cite specific papers.'
     : '';
 
+  const safeCategoryName = sanitizeForPrompt(categoryName, 200);
+  const safeTopic = sanitizeForPrompt(topic, 200);
+  const safeTopicDescription = sanitizeForPrompt(topicDescription, 500);
+
   let systemPrompt: string;
   let userPrompt: string;
 
   if (cardType === 'quiz') {
     systemPrompt = `You are a Socratic tutor for Daily Kernel. Create a quiz card that tests understanding of a topic the learner has studied before. ${tone}`;
-    userPrompt = `Category: ${categoryName}
-Topic: ${topic}
-Description: ${topicDescription}
+    userPrompt = `Category: ${safeCategoryName}
+Topic: ${safeTopic}
+Description: ${safeTopicDescription}
 This is review #${timesReviewed + 1}.${researchContext}
 
 Create a quiz card with:
@@ -223,9 +230,9 @@ Your cards should:
 - End with a thought-provoking question that tests understanding${researchInstruction}
 ${isReview ? `\nThis is a review card. ${angle}` : ''}`;
 
-    userPrompt = `Category: ${categoryName}
-Topic: ${topic}
-Description: ${topicDescription}
+    userPrompt = `Category: ${safeCategoryName}
+Topic: ${safeTopic}
+Description: ${safeTopicDescription}
 Difficulty level: ${difficultyLevel}/5
 ${isReview ? `Review #${timesReviewed + 1}. Give a FRESH perspective - don't repeat previous explanations.` : 'First time seeing this topic.'}${researchContext}
 

@@ -32,6 +32,13 @@ class APIClient: ObservableObject {
         AuthService.shared.accessToken
     }
 
+    private lazy var session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 15
+        config.timeoutIntervalForResource = 30
+        return URLSession(configuration: config)
+    }()
+
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
         return d
@@ -77,7 +84,7 @@ class APIClient: ObservableObject {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await session.data(for: request)
         } catch {
             throw APIError.networkError(error)
         }
@@ -87,6 +94,42 @@ class APIClient: ObservableObject {
         }
 
         if httpResponse.statusCode == 401 {
+            // Try to refresh the token before signing out
+            do {
+                try await AuthService.shared.refreshSession()
+                // Retry with the new token
+                if let newToken = AuthService.shared.accessToken {
+                    var retryRequest = request
+                    retryRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
+                    let (retryData, retryResponse) = try await session.data(for: retryRequest)
+                    guard let retryHttp = retryResponse as? HTTPURLResponse else {
+                        throw APIError.serverError("Invalid response")
+                    }
+                    if retryHttp.statusCode == 401 {
+                        AuthService.shared.signOut()
+                        throw APIError.unauthorized
+                    }
+                    if retryHttp.statusCode >= 400 {
+                        if let errorBody = try? JSONSerialization.jsonObject(with: retryData) as? [String: Any],
+                           let errorMsg = errorBody["error"] as? String {
+                            throw APIError.serverError(errorMsg)
+                        }
+                        throw APIError.serverError("HTTP \(retryHttp.statusCode)")
+                    }
+                    return try decoder.decode(T.self, from: retryData)
+                }
+            } catch let apiError as APIError {
+                // Propagate specific API errors (e.g. serverError from retry)
+                // but sign out only on unauthorized
+                if case .unauthorized = apiError {
+                    AuthService.shared.signOut()
+                }
+                throw apiError
+            } catch {
+                AuthService.shared.signOut()
+                throw APIError.unauthorized
+            }
+            // If refresh succeeded but no token was available, sign out
             AuthService.shared.signOut()
             throw APIError.unauthorized
         }
@@ -142,7 +185,7 @@ class APIClient: ObservableObject {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await session.data(for: request)
         } catch {
             throw APIError.networkError(error)
         }
@@ -152,8 +195,36 @@ class APIClient: ObservableObject {
         }
 
         if httpResponse.statusCode == 401 {
-            AuthService.shared.signOut()
-            throw APIError.unauthorized
+            // Try to refresh the token before signing out
+            do {
+                try await AuthService.shared.refreshSession()
+                // Retry with the new token
+                if let newToken = AuthService.shared.accessToken {
+                    var retryRequest = request
+                    retryRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
+                    let (retryData, retryResponse) = try await session.data(for: retryRequest)
+                    guard let retryHttp = retryResponse as? HTTPURLResponse else {
+                        throw APIError.serverError("Invalid response")
+                    }
+                    if retryHttp.statusCode == 401 {
+                        AuthService.shared.signOut()
+                        throw APIError.unauthorized
+                    }
+                    if retryHttp.statusCode >= 400 {
+                        if let errorBody = try? JSONSerialization.jsonObject(with: retryData) as? [String: Any],
+                           let errorMsg = errorBody["error"] as? String {
+                            throw APIError.serverError(errorMsg)
+                        }
+                        throw APIError.serverError("HTTP \(retryHttp.statusCode)")
+                    }
+                    return
+                }
+            } catch is APIError {
+                throw APIError.unauthorized
+            } catch {
+                AuthService.shared.signOut()
+                throw APIError.unauthorized
+            }
         }
 
         if httpResponse.statusCode >= 400 {
