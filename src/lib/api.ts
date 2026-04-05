@@ -205,4 +205,23 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(settings),
     }),
+
+  // Subscription
+  getSubscriptionStatus: () =>
+    request<{ status: string; plan: string | null; expires_at: string | null }>('/api/subscription/status'),
+
+  createCheckout: (plan: 'monthly' | 'annual') =>
+    request<{ url: string }>('/api/subscription/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
+    }),
+
+  createPortalSession: () =>
+    request<{ url: string }>('/api/subscription/portal', { method: 'POST' }),
+
+  redeemFreePass: (code: string) =>
+    request<{ success: boolean }>('/api/subscription/redeem', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
 };

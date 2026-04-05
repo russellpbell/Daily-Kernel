@@ -16,16 +16,26 @@ export default function SettingsPage() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [savingName, setSavingName] = useState(false);
+  const [subStatus, setSubStatus] = useState<string | null>(null);
+  const [subPlan, setSubPlan] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
-    api.getSettings()
-      .then(data => {
-        setUserName(data.user.name);
-        setUserEmail(data.user.email);
-        setCardsPerBriefing(data.user.cards_per_briefing);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.getSettings()
+        .then(data => {
+          setUserName(data.user.name);
+          setUserEmail(data.user.email);
+          setCardsPerBriefing(data.user.cards_per_briefing);
+        })
+        .catch(() => {}),
+      api.getSubscriptionStatus()
+        .then(data => {
+          setSubStatus(data.status);
+          setSubPlan(data.plan);
+        })
+        .catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, []);
 
   const handleSliderChange = async (value: number) => {
@@ -158,6 +168,51 @@ export default function SettingsPage() {
         <div className="flex justify-between mt-1">
           <span className="text-[10px] text-slate-600">5</span>
           <span className="text-[10px] text-slate-600">25</span>
+        </div>
+      </div>
+
+      {/* Subscription */}
+      <div className="rounded-xl bg-surface border border-white/5 p-4 mb-4 space-y-3">
+        <div className="text-xs text-slate-500 mb-1">Subscription</div>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium text-white">
+              {subPlan === 'monthly' ? 'Monthly' : subPlan === 'annual' ? 'Annual' : subPlan === 'free_pass' ? 'Free Pass' : subPlan ?? 'None'}
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              {subStatus === 'active' ? 'Active' : subStatus === 'free_pass' ? 'Active' : subStatus === 'canceled' ? 'Canceled' : subStatus === 'past_due' ? 'Past Due' : subStatus ?? 'No subscription'}
+            </div>
+          </div>
+          {subStatus === 'free_pass' ? (
+            <span className="px-2.5 py-1 rounded-full bg-green-500/15 text-green-400 text-xs font-semibold">
+              Free Pass
+            </span>
+          ) : subStatus === 'active' || subStatus === 'canceled' || subStatus === 'past_due' ? (
+            <button
+              onClick={async () => {
+                setPortalLoading(true);
+                try {
+                  const { url } = await api.createPortalSession();
+                  window.location.href = url;
+                } catch {
+                  // Silent fail
+                } finally {
+                  setPortalLoading(false);
+                }
+              }}
+              disabled={portalLoading}
+              className="px-3 py-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary-light text-xs font-semibold transition-colors disabled:opacity-50"
+            >
+              {portalLoading ? 'Opening...' : 'Manage Subscription'}
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push('/subscribe')}
+              className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-light text-white text-xs font-semibold transition-colors"
+            >
+              Subscribe
+            </button>
+          )}
         </div>
       </div>
 

@@ -154,6 +154,12 @@ export interface PathProgress {
   next_review_at: string | null;
 }
 
+export interface SubscriptionStatus {
+  status: 'none' | 'active' | 'canceled' | 'past_due' | 'free_pass';
+  plan: 'monthly' | 'annual' | null;
+  expires_at: string | null;
+}
+
 export interface ApiError {
   error: string;
 }

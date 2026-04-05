@@ -4,6 +4,12 @@ CREATE TABLE users (
   name TEXT NOT NULL DEFAULT '',
   email TEXT,
   cards_per_briefing INTEGER NOT NULL DEFAULT 10,
+  subscription_status TEXT NOT NULL DEFAULT 'none' CHECK (subscription_status IN ('none', 'active', 'canceled', 'past_due', 'free_pass')),
+  subscription_plan TEXT CHECK (subscription_plan IN ('monthly', 'annual', NULL)),
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  subscription_expires_at TIMESTAMPTZ,
+  free_pass_code TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -181,6 +187,19 @@ CREATE TABLE path_progress (
   UNIQUE(user_id, learning_path_id, topic_index)
 );
 
+-- Free pass codes for friends and family
+CREATE TABLE free_passes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT NOT NULL UNIQUE,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  redeemed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  is_redeemed BOOLEAN NOT NULL DEFAULT false,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_free_passes_code ON free_passes(code);
+
 -- Indexes for performance
 CREATE INDEX idx_categories_user_id ON categories(user_id);
 CREATE INDEX idx_briefings_user_id_date ON briefings(user_id, date);
@@ -233,3 +252,6 @@ ALTER TABLE learning_paths ENABLE ROW LEVEL SECURITY;
 ALTER TABLE path_progress ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Service role full access" ON learning_paths FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Service role full access" ON path_progress FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE free_passes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON free_passes FOR ALL USING (true) WITH CHECK (true);

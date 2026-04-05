@@ -351,6 +351,31 @@ class APIClient: ObservableObject {
         try await request(path: "/api/knowledge")
     }
 
+    // MARK: - Subscription
+
+    struct SubscriptionStatusResponse: Codable {
+        let status: String
+        let plan: String?
+        let expiresAt: String?
+
+        enum CodingKeys: String, CodingKey {
+            case status, plan
+            case expiresAt = "expires_at"
+        }
+    }
+
+    func getSubscriptionStatus() async throws -> SubscriptionStatusResponse {
+        try await request(path: "/api/subscription/status")
+    }
+
+    func redeemFreePass(code: String) async throws {
+        let _: [String: Bool] = try await request(
+            path: "/api/subscription/redeem",
+            method: "POST",
+            body: ["code": code]
+        )
+    }
+
     // MARK: - Settings
 
     func getSettings() async throws -> UserProfileResponse {

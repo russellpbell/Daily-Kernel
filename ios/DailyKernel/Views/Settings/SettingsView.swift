@@ -3,6 +3,7 @@ import UserNotifications
 
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
+    @EnvironmentObject var storeService: StoreKitService
     @StateObject private var notificationService = NotificationService.shared
 
     @State private var userName = ""
@@ -17,6 +18,8 @@ struct SettingsView: View {
     @State private var showSignOutConfirm = false
     @State private var saveSuccess = false
     @State private var showNotificationDeniedAlert = false
+    @State private var subscriptionStatus: String?
+    @State private var subscriptionPlan: String?
 
     private let api = APIClient.shared
 
@@ -82,6 +85,63 @@ struct SettingsView: View {
                             }
                         } header: {
                             Text("Notifications")
+                        }
+
+                        // Subscription section
+                        Section {
+                            HStack {
+                                Text("Plan")
+                                    .foregroundStyle(.gray)
+                                Spacer()
+                                if storeService.hasFreePass {
+                                    Text("Free Pass")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(.green)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(Color.green.opacity(0.15))
+                                        .cornerRadius(6)
+                                } else if let plan = subscriptionPlan {
+                                    Text(plan == "monthly" ? "Monthly" : plan == "annual" ? "Annual" : plan.capitalized)
+                                        .foregroundStyle(.white.opacity(0.7))
+                                } else {
+                                    Text("None")
+                                        .foregroundStyle(.white.opacity(0.5))
+                                }
+                            }
+                            .listRowBackground(Color.appSurface)
+
+                            HStack {
+                                Text("Status")
+                                    .foregroundStyle(.gray)
+                                Spacer()
+                                if let status = subscriptionStatus {
+                                    Text(status == "active" ? "Active" : status == "free_pass" ? "Active" : status == "canceled" ? "Canceled" : status == "past_due" ? "Past Due" : status.capitalized)
+                                        .foregroundStyle(status == "active" || status == "free_pass" ? .green : status == "canceled" ? .orange : .red)
+                                } else {
+                                    Text("Not subscribed")
+                                        .foregroundStyle(.white.opacity(0.5))
+                                }
+                            }
+                            .listRowBackground(Color.appSurface)
+
+                            if !storeService.hasFreePass {
+                                Button {
+                                    Task {
+                                        await storeService.restorePurchases()
+                                    }
+                                } label: {
+                                    HStack {
+                                        Spacer()
+                                        Text("Restore Purchases")
+                                            .foregroundStyle(Color.appPrimaryLight)
+                                        Spacer()
+                                    }
+                                }
+                                .listRowBackground(Color.appSurface)
+                            }
+                        } header: {
+                            Text("Subscription")
                         }
 
                         // Developer section
@@ -219,6 +279,22 @@ struct SettingsView: View {
             errorMessage = error.localizedDescription
             showError = true
         }
+
+        // Load subscription status
+        do {
+            let subResponse = try await api.getSubscriptionStatus()
+            subscriptionStatus = subResponse.status
+            subscriptionPlan = subResponse.plan
+        } catch {
+            // Non-critical, use store service state
+            if storeService.hasFreePass {
+                subscriptionStatus = "free_pass"
+                subscriptionPlan = "free_pass"
+            } else if storeService.isSubscribed {
+                subscriptionStatus = "active"
+            }
+        }
+
         isLoading = false
     }
 
