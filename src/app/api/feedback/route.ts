@@ -166,6 +166,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Spaced repetition: handle review queue based on feedback
+    if (card && action === 'thumbs_up') {
+      // If this is a review card, advance the spaced repetition interval
+      if (card.is_review && card.review_id) {
+        await markReviewed(supabase, card.review_id);
+      } else {
+        // For non-review cards, check if the category is academic and add to review queue
+        const { data: category } = await supabase
+          .from('categories')
+          .select('source_type')
+          .eq('user_id', userId)
+          .eq('name', card.category_name)
+          .single();
+
+        const sourceType = category?.source_type || 'news';
+        await addToReviewQueue(
+          supabase,
+          userId,
+          {
+            source_url: card.source_url,
+            title: card.title,
+            summary: card.summary,
+            category_name: card.category_name,
+            source_name: card.source_name,
+          },
+          sourceType
+        );
+      }
+    }
+
+    // If thumbs_down on a review card, remove from review queue
+    if (card && action === 'thumbs_down' && card.is_review && card.review_id) {
+      await removeFromReviewQueue(supabase, card.review_id);
+    }
+
     return NextResponse.json({ success: true, action });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
