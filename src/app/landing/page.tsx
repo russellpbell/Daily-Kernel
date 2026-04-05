@@ -153,15 +153,19 @@ export default function LandingPage() {
             className="text-4xl sm:text-6xl md:text-7xl font-bold text-white tracking-tight leading-[1.1]"
             style={{ animation: 'fade-in-up 1s ease-out 0.15s both' }}
           >
-            Daily Kernel
+            Keep up with
+            <br />
+            <span className="bg-gradient-to-r from-primary-light to-indigo-300 bg-clip-text text-transparent">
+              your field.
+            </span>
           </h1>
           <p
             className="mt-6 text-lg sm:text-xl text-slate-400 max-w-lg mx-auto leading-relaxed"
             style={{ animation: 'fade-in-up 1s ease-out 0.3s both' }}
           >
-            A daily feed of research papers and news, summarized into
-            cards you can get through in a few minutes. Pick your fields,
-            and it gets smarter about what you care about over time.
+            Research papers and news from your fields, summarized into
+            cards you can read in a few minutes a day. It learns what
+            you care about and gets better over time.
           </p>
           <div
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
@@ -198,18 +202,17 @@ export default function LandingPage() {
       <section className="py-32 px-6">
         <div className="max-w-2xl mx-auto text-center">
           <RevealSection>
-            <p className="text-xl sm:text-2xl text-slate-300 leading-relaxed">
-              There are thousands of papers published every week.
-              Most of us don&rsquo;t read any of them — not because we don&rsquo;t
-              want to, but because sitting down with a 30-page PDF
-              just doesn&rsquo;t happen.
+            <p className="text-2xl sm:text-3xl font-medium text-white leading-snug">
+              Thousands of papers are published every week.
+              <span className="text-slate-500"> Reading a 30-page PDF rarely happens.</span>
             </p>
           </RevealSection>
           <RevealSection delay={200}>
-            <p className="mt-8 text-xl sm:text-2xl text-slate-300 leading-relaxed">
-              Daily Kernel gives you the key ideas from the papers
-              and news in your field, a few cards at a time,
-              so you can actually keep up.
+            <p className="mt-8 text-lg text-slate-400 max-w-xl mx-auto leading-relaxed">
+              Daily Kernel pulls the key ideas from recent research
+              and news in your fields, and puts them in cards you can
+              actually get through — a few minutes a day, every day.
+              Over weeks and months, that adds up.
             </p>
           </RevealSection>
         </div>
@@ -273,18 +276,20 @@ export default function LandingPage() {
                 Learning Paths
               </p>
               <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-6">
-                Or learn something from scratch.
+                Or learn something
+                <br />from scratch.
               </h2>
               <p className="text-slate-400 leading-relaxed mb-4">
-                Set a category to &ldquo;Learn&rdquo; mode and it generates a full
-                syllabus for that subject — ordered from basics to advanced
-                topics. You get a couple of lessons per day, each with a
-                question to think about.
+                Set a category to &ldquo;Learn&rdquo; mode and it builds a
+                structured syllabus — basics through advanced topics,
+                a couple of lessons per day, each with a question
+                that makes you actually think about what you read.
               </p>
               <p className="text-slate-400 leading-relaxed">
-                At more advanced levels, it pulls in real papers from
-                PubMed, arXiv, and OpenAlex so you&rsquo;re learning from
-                actual research, not just a language model&rsquo;s memory.
+                As you progress, it starts grounding lessons in real
+                papers from PubMed, arXiv, and OpenAlex — so at
+                the advanced levels you&rsquo;re learning from current
+                research, not just an AI&rsquo;s training data.
               </p>
             </RevealSection>
 
@@ -409,14 +414,14 @@ export default function LandingPage() {
                 Spaced Repetition
               </p>
               <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-6">
-                Things you liked come back.
+                Reading once isn&rsquo;t enough.
               </h2>
               <p className="text-slate-400 leading-relaxed">
-                When you mark a paper as interesting, it shows up again later —
-                first the next day, then after 2 days, 4, 7, 14, and so on. Each
-                time it highlights something different: a practical application,
-                a limitation, a connection you might have missed. Same paper,
-                new perspective.
+                Papers you find interesting resurface at growing intervals —
+                1, 2, 4, 7, 14, 30 days. Each time, the card highlights
+                something different: a practical application, a limitation,
+                a connection to something else you&rsquo;ve read. Same paper,
+                deeper understanding.
               </p>
             </RevealSection>
           </div>
@@ -430,27 +435,27 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto">
           <RevealSection>
             <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">
-              What this is.
+              The details.
             </h2>
           </RevealSection>
 
           <div className="grid sm:grid-cols-2 gap-8">
             {[
               {
-                title: 'A side project, not a startup',
-                desc: 'Built for friends and family who wanted a better way to keep up with research. Free to use, open source.',
+                title: 'Free and open source',
+                desc: 'Built for friends and family who wanted a better way to stay current. No ads, no premium tier, no catch.',
               },
               {
-                title: 'Cards, not papers',
-                desc: '2-3 sentence summaries with a link to the original. Enough to know what\'s happening — you decide when to go deeper.',
+                title: 'Cards, not PDFs',
+                desc: '2-3 sentence summaries that tell you what matters and why. Every card links to the original paper or article when you want the full picture.',
               },
               {
-                title: 'Gets better with use',
-                desc: 'It tracks what you\'ve seen, adjusts difficulty, and stops showing you the same things. Not magic, just bookkeeping.',
+                title: 'Adapts as you go',
+                desc: 'Tracks what you\'ve read, adjusts the language to your level, and stops showing you things you\'ve already seen. Simple but effective.',
               },
               {
-                title: 'AI-generated, source-linked',
-                desc: 'Summaries are written by Claude. Every card links to the real paper or article so you can verify and read more.',
+                title: 'AI-powered, human-verified',
+                desc: 'Summaries are generated by Claude and grounded in real sources — PubMed, arXiv, OpenAlex. You always get a link to check the original.',
               },
             ].map((value, i) => (
               <RevealSection key={value.title} delay={i * 100}>
@@ -472,11 +477,13 @@ export default function LandingPage() {
           <RevealSection>
             <div className="text-5xl mb-6">🌱</div>
             <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-6">
-              Give it a try.
+              A few minutes today.
+              <br />
+              <span className="text-slate-400">A lot of knowledge over time.</span>
             </h2>
             <p className="text-lg text-slate-400 mb-10 max-w-md mx-auto">
-              Pick a couple of topics, see if the cards are useful.
-              Takes about a minute to set up.
+              Pick your fields, set up in a minute, and see your
+              first briefing. Free — no account tricks.
             </p>
             <Link
               href="/login"
