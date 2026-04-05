@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { addToReviewQueue, markReviewed, removeFromReviewQueue } from '@/lib/spaced-repetition';
+import { recordTopicReview } from '@/lib/curriculum-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     // Verify card belongs to user's briefing
     const { data: card } = await supabase
       .from('cards')
-      .select('id, briefing_id, category_name, title, summary, source_url, source_name, is_review, review_id')
+      .select('id, briefing_id, category_name, title, summary, source_url, source_name, is_review, review_id, topic_index')
       .eq('id', card_id)
       .single();
 
@@ -199,6 +200,20 @@ export async function POST(request: NextRequest) {
     // If thumbs_down on a review card, remove from review queue
     if (card && action === 'thumbs_down' && card.is_review && card.review_id) {
       await removeFromReviewQueue(supabase, card.review_id);
+    }
+
+    // Handle curriculum topic progress
+    if (card && card.topic_index !== null && card.topic_index !== undefined) {
+      const { data: categoryData } = await supabase
+        .from('categories')
+        .select('source_type')
+        .eq('user_id', userId)
+        .eq('name', card.category_name)
+        .single();
+
+      if (categoryData?.source_type === 'curriculum') {
+        await recordTopicReview(supabase, userId, card.category_name, card.topic_index, action);
+      }
     }
 
     return NextResponse.json({ success: true, action });

@@ -11,7 +11,7 @@ export interface Category {
   name: string;
   weight: number;
   is_active: boolean;
-  source_type: 'news' | 'biomedical' | 'stem' | 'academic';
+  source_type: 'news' | 'biomedical' | 'stem' | 'academic' | 'curriculum';
   created_at: string;
 }
 
@@ -128,6 +128,30 @@ export interface ReviewQueueItem {
   times_reviewed: number;
   next_review_date: string;
   interval_days: number;
+}
+
+export interface LearningPath {
+  id: string;
+  category_name: string;
+  syllabus: SyllabusTopic[];
+  total_topics: number;
+}
+
+export interface SyllabusTopic {
+  topic: string;
+  description: string;
+  order: number;
+  difficulty_level: number;
+}
+
+export interface PathProgress {
+  id: string;
+  topic_index: number;
+  topic_name: string;
+  status: 'pending' | 'in_progress' | 'learned' | 'mastered';
+  times_reviewed: number;
+  last_reviewed_at: string | null;
+  next_review_at: string | null;
 }
 
 export interface ApiError {

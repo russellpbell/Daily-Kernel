@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useCategories } from '@/hooks/useCategories';
 
-const SUGGESTIONS: { name: string; source_type: 'news' | 'biomedical' | 'stem' | 'academic' }[] = [
+const SUGGESTIONS: { name: string; source_type: 'news' | 'biomedical' | 'stem' | 'academic' | 'curriculum' }[] = [
   { name: 'AI', source_type: 'stem' },
   { name: 'Climate', source_type: 'news' },
   { name: 'Space', source_type: 'stem' },
@@ -12,13 +12,17 @@ const SUGGESTIONS: { name: string; source_type: 'news' | 'biomedical' | 'stem' |
   { name: 'Finance', source_type: 'news' },
   { name: 'Science', source_type: 'academic' },
   { name: 'Politics', source_type: 'news' },
+  { name: 'Organic Chemistry', source_type: 'curriculum' },
+  { name: 'Machine Learning', source_type: 'curriculum' },
+  { name: 'Statistics', source_type: 'curriculum' },
 ];
 
-const SOURCE_TYPE_OPTIONS: { value: 'news' | 'biomedical' | 'stem' | 'academic'; label: string; icon: string }[] = [
+const SOURCE_TYPE_OPTIONS: { value: 'news' | 'biomedical' | 'stem' | 'academic' | 'curriculum'; label: string; icon: string }[] = [
   { value: 'news', label: 'News', icon: '\u{1F4F0}' },
   { value: 'biomedical', label: 'Biomedical', icon: '\u{1F9EC}' },
   { value: 'stem', label: 'STEM', icon: '\u{1F52C}' },
   { value: 'academic', label: 'Academic', icon: '\u{1F4DA}' },
+  { value: 'curriculum', label: 'Learn', icon: '\u{1F393}' },
 ];
 
 export default function CategoriesPage() {

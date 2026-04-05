@@ -85,7 +85,7 @@ export const api = {
         name: string;
         weight: number;
         is_active: boolean;
-        source_type: 'news' | 'biomedical' | 'stem' | 'academic';
+        source_type: 'news' | 'biomedical' | 'stem' | 'academic' | 'curriculum';
       }>;
     }>('/api/categories'),
 
@@ -96,7 +96,7 @@ export const api = {
         name: string;
         weight: number;
         is_active: boolean;
-        source_type: 'news' | 'biomedical' | 'stem' | 'academic';
+        source_type: 'news' | 'biomedical' | 'stem' | 'academic' | 'curriculum';
       };
     }>('/api/categories', {
       method: 'POST',
@@ -110,7 +110,7 @@ export const api = {
         name: string;
         weight: number;
         is_active: boolean;
-        source_type: 'news' | 'biomedical' | 'stem' | 'academic';
+        source_type: 'news' | 'biomedical' | 'stem' | 'academic' | 'curriculum';
       };
     }>(`/api/categories/${id}`, {
       method: 'PATCH',
@@ -183,6 +183,14 @@ export const api = {
       total_topics: number;
       total_cards_reviewed: number;
     }>('/api/knowledge'),
+
+  // Curriculum
+  getCurriculumProgress: (category: string) =>
+    request<{
+      path: { id: string; category_name: string; total_topics: number };
+      progress: Array<{ topic_index: number; topic_name: string; status: string; times_reviewed: number }>;
+      stats: { completed: number; in_progress: number; mastered: number; total: number };
+    }>(`/api/curriculum?category=${encodeURIComponent(category)}`),
 
   // Settings
   getSettings: () =>

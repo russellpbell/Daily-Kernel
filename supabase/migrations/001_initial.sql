@@ -14,7 +14,7 @@ CREATE TABLE categories (
   name TEXT NOT NULL,
   weight REAL NOT NULL DEFAULT 1.0,
   is_active BOOLEAN NOT NULL DEFAULT true,
-  source_type TEXT NOT NULL DEFAULT 'news' CHECK (source_type IN ('news', 'biomedical', 'stem', 'academic')),
+  source_type TEXT NOT NULL DEFAULT 'news' CHECK (source_type IN ('news', 'biomedical', 'stem', 'academic', 'curriculum')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(user_id, name)
 );
@@ -40,6 +40,7 @@ CREATE TABLE cards (
   position INTEGER NOT NULL DEFAULT 0,
   is_review BOOLEAN NOT NULL DEFAULT false,
   review_id UUID,  -- will reference review_queue(id) after that table is created
+  topic_index INTEGER,  -- for curriculum cards, tracks which syllabus topic
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -152,6 +153,34 @@ CREATE TABLE user_expertise (
   UNIQUE(user_id, category_name)
 );
 
+-- Learning paths: Claude-generated syllabi for curriculum categories
+CREATE TABLE learning_paths (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category_name TEXT NOT NULL,
+  syllabus JSONB NOT NULL,  -- Array of {topic, description, order, difficulty_level}
+  total_topics INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, category_name)
+);
+
+-- Progress through learning path topics
+CREATE TABLE path_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  learning_path_id UUID NOT NULL REFERENCES learning_paths(id) ON DELETE CASCADE,
+  topic_index INTEGER NOT NULL,  -- index in the syllabus array
+  topic_name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'learned', 'mastered')),
+  times_reviewed INTEGER NOT NULL DEFAULT 0,
+  last_reviewed_at TIMESTAMPTZ,
+  next_review_at TIMESTAMPTZ,
+  comprehension_score REAL,  -- 0-1, based on quiz performance
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, learning_path_id, topic_index)
+);
+
 -- Indexes for performance
 CREATE INDEX idx_categories_user_id ON categories(user_id);
 CREATE INDEX idx_briefings_user_id_date ON briefings(user_id, date);
@@ -164,6 +193,9 @@ CREATE INDEX idx_summary_cache_key ON summary_cache(cache_key);
 CREATE INDEX idx_reading_list_user ON reading_list(user_id, is_read);
 CREATE INDEX idx_knowledge_entries_user ON knowledge_entries(user_id, category_name);
 CREATE INDEX idx_user_expertise_user ON user_expertise(user_id);
+CREATE INDEX idx_learning_paths_user ON learning_paths(user_id, category_name);
+CREATE INDEX idx_path_progress_user ON path_progress(user_id, learning_path_id);
+CREATE INDEX idx_path_progress_review ON path_progress(user_id, next_review_at);
 
 -- Row Level Security policies
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -196,3 +228,8 @@ CREATE POLICY "Service role full access" ON user_expertise FOR ALL USING (true) 
 
 ALTER TABLE review_queue ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Service role full access" ON review_queue FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE learning_paths ENABLE ROW LEVEL SECURITY;
+ALTER TABLE path_progress ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON learning_paths FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access" ON path_progress FOR ALL USING (true) WITH CHECK (true);

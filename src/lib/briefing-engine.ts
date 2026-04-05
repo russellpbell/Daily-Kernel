@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { searchCategory } from '@/lib/news-search';
 import { summarizeArticles, generateReviewCard } from '@/lib/claude-service';
 import { getDueReviews } from '@/lib/spaced-repetition';
+import { getNextCurriculumCards } from '@/lib/curriculum-service';
 import { Briefing, CardSummary, NewsArticle } from '@/types';
 
 /**
@@ -260,6 +261,22 @@ export async function generateBriefing(
     allocation.map(async ({ name, count, source_type }) => {
       const sourceType = source_type || 'news';
 
+      if (sourceType === 'curriculum') {
+        // Curriculum: generate lesson cards instead of searching
+        const level = expertiseMap.get(name) || 1;
+        const curriculumCards = await getNextCurriculumCards(supabase, userId, name, count, level);
+        return {
+          categoryName: name,
+          cards: curriculumCards.map(c => ({
+            title: c.title,
+            summary: c.summary,
+            source_url: c.source_url,
+            source_name: c.source_name,
+            topic_index: c.topic_index,
+          })),
+        };
+      }
+
       // Check search_cache for today's results
       let searchResults: NewsArticle[];
       const { data: cachedSearch } = await supabase
@@ -348,6 +365,7 @@ export async function generateBriefing(
     position: number;
     is_review?: boolean;
     review_id?: string | null;
+    topic_index?: number | null;
   }[] = [];
 
   let position = 0;
@@ -360,6 +378,7 @@ export async function generateBriefing(
         source_url: card.source_url,
         source_name: card.source_name,
         position: position++,
+        topic_index: 'topic_index' in card ? (card as { topic_index: number }).topic_index : null,
       });
     }
   }

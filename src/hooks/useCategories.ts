@@ -8,7 +8,7 @@ interface Category {
   name: string;
   weight: number;
   is_active: boolean;
-  source_type: 'news' | 'biomedical' | 'stem' | 'academic';
+  source_type: 'news' | 'biomedical' | 'stem' | 'academic' | 'curriculum';
 }
 
 export function useCategories() {
