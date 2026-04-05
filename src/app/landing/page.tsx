@@ -48,7 +48,7 @@ function RevealSection({
 }
 
 // ---------------------------------------------------------------------------
-// Animated card mock for the hero
+// Mock card for hero background
 // ---------------------------------------------------------------------------
 function MockCard({
   title,
@@ -83,27 +83,6 @@ function MockCard({
 }
 
 // ---------------------------------------------------------------------------
-// Expertise level dots
-// ---------------------------------------------------------------------------
-function ExpertiseDots({ level, label }: { level: number; label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map(i => (
-          <div
-            key={i}
-            className={`w-2 h-2 rounded-full transition-all duration-500 ${
-              i <= level ? 'bg-primary-light scale-100' : 'bg-white/10 scale-75'
-            }`}
-          />
-        ))}
-      </div>
-      <span className="text-xs text-slate-400">{label}</span>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Landing Page
 // ---------------------------------------------------------------------------
 export default function LandingPage() {
@@ -117,9 +96,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-bg text-slate-200 overflow-x-hidden">
-      {/* ----------------------------------------------------------------- */}
       {/* NAV */}
-      {/* ----------------------------------------------------------------- */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 sm:px-10 h-14 bg-bg/70 backdrop-blur-xl border-b border-white/5">
         <span className="text-sm font-semibold text-white tracking-tight">
           🌱 Daily Kernel
@@ -128,7 +105,7 @@ export default function LandingPage() {
           href="/login"
           className="px-4 py-1.5 rounded-full text-sm font-medium bg-primary hover:bg-primary-light text-white transition-colors"
         >
-          Get Started
+          Sign In
         </Link>
       </nav>
 
@@ -136,7 +113,6 @@ export default function LandingPage() {
       {/* HERO */}
       {/* ----------------------------------------------------------------- */}
       <section className="relative flex flex-col items-center justify-center min-h-screen px-6 pt-14 overflow-hidden">
-        {/* Floating cards in background */}
         <div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
           style={{ transform: `translateY(${scrollY * 0.15}px)` }}
@@ -164,10 +140,8 @@ export default function LandingPage() {
           />
         </div>
 
-        {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-bg via-bg/80 to-bg z-10" />
 
-        {/* Hero text */}
         <div className="relative z-20 text-center max-w-3xl mx-auto">
           <div
             className="text-6xl mb-6"
@@ -179,18 +153,15 @@ export default function LandingPage() {
             className="text-4xl sm:text-6xl md:text-7xl font-bold text-white tracking-tight leading-[1.1]"
             style={{ animation: 'fade-in-up 1s ease-out 0.15s both' }}
           >
-            Become an expert.
-            <br />
-            <span className="bg-gradient-to-r from-primary-light to-indigo-300 bg-clip-text text-transparent">
-              Five minutes a day.
-            </span>
+            Daily Kernel
           </h1>
           <p
-            className="mt-6 text-lg sm:text-xl text-slate-400 max-w-xl mx-auto leading-relaxed"
+            className="mt-6 text-lg sm:text-xl text-slate-400 max-w-lg mx-auto leading-relaxed"
             style={{ animation: 'fade-in-up 1s ease-out 0.3s both' }}
           >
-            Daily Kernel turns the world&rsquo;s knowledge into bite-sized cards
-            that build real expertise over time. Powered by AI. Guided by you.
+            A daily feed of research papers and news, summarized into
+            cards you can get through in a few minutes. Pick your fields,
+            and it gets smarter about what you care about over time.
           </p>
           <div
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
@@ -198,20 +169,19 @@ export default function LandingPage() {
           >
             <Link
               href="/login"
-              className="px-8 py-3.5 rounded-full text-base font-semibold bg-primary hover:bg-primary-light text-white transition-all hover:scale-105 shadow-lg shadow-primary/25"
+              className="px-8 py-3.5 rounded-full text-base font-semibold bg-primary hover:bg-primary-light text-white transition-all shadow-lg shadow-primary/25"
             >
-              Start Learning — Free
+              Try It Free
             </Link>
             <a
               href="#how-it-works"
               className="px-8 py-3.5 rounded-full text-base font-medium text-slate-300 hover:text-white border border-white/10 hover:border-white/20 transition-all"
             >
-              See How It Works
+              How It Works
             </a>
           </div>
         </div>
 
-        {/* Scroll indicator */}
         <div
           className="absolute bottom-10 z-20"
           style={{ animation: 'fade-in-up 1s ease-out 1s both' }}
@@ -223,29 +193,23 @@ export default function LandingPage() {
       </section>
 
       {/* ----------------------------------------------------------------- */}
-      {/* PROBLEM STATEMENT */}
+      {/* THE PROBLEM (honest, not guilt-trippy) */}
       {/* ----------------------------------------------------------------- */}
       <section className="py-32 px-6">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-2xl mx-auto text-center">
           <RevealSection>
-            <p className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white leading-snug">
-              You graduated.
-              <br />
-              <span className="text-slate-500">You stopped reading papers.</span>
-              <br />
-              <span className="text-slate-500">You fell behind.</span>
+            <p className="text-xl sm:text-2xl text-slate-300 leading-relaxed">
+              There are thousands of papers published every week.
+              Most of us don&rsquo;t read any of them — not because we don&rsquo;t
+              want to, but because sitting down with a 30-page PDF
+              just doesn&rsquo;t happen.
             </p>
           </RevealSection>
           <RevealSection delay={200}>
-            <p className="mt-10 text-lg text-slate-400 max-w-xl mx-auto leading-relaxed">
-              The gap between what you know and what&rsquo;s happening in your field
-              grows every day. Not because you don&rsquo;t care — because there&rsquo;s
-              no good way to keep up.
-            </p>
-          </RevealSection>
-          <RevealSection delay={400}>
-            <p className="mt-6 text-xl font-medium text-primary-light">
-              Until now.
+            <p className="mt-8 text-xl sm:text-2xl text-slate-300 leading-relaxed">
+              Daily Kernel gives you the key ideas from the papers
+              and news in your field, a few cards at a time,
+              so you can actually keep up.
             </p>
           </RevealSection>
         </div>
@@ -254,45 +218,38 @@ export default function LandingPage() {
       {/* ----------------------------------------------------------------- */}
       {/* HOW IT WORKS */}
       {/* ----------------------------------------------------------------- */}
-      <section id="how-it-works" className="py-32 px-6">
+      <section id="how-it-works" className="py-32 px-6 border-t border-white/5">
         <div className="max-w-5xl mx-auto">
           <RevealSection>
-            <p className="text-xs font-semibold tracking-[0.3em] uppercase text-primary-light text-center mb-4">
-              How It Works
-            </p>
-            <h2 className="text-3xl sm:text-5xl font-bold text-white text-center mb-20">
-              Knowledge, delivered daily.
+            <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-20">
+              Here&rsquo;s how it works.
             </h2>
           </RevealSection>
 
           <div className="grid sm:grid-cols-3 gap-8 sm:gap-12">
             {[
               {
-                num: '01',
-                title: 'Choose what matters to you',
-                desc: 'Pick your fields — AI, genomics, climate, organic chemistry. Set whether you want news, research papers, or a structured learning path.',
-                icon: '🎯',
+                num: '1',
+                title: 'Pick your topics',
+                desc: 'Add categories like "AI," "Genomics," or "Climate." Choose whether you want recent news, research papers, or a structured learning path for each one.',
               },
               {
-                num: '02',
-                title: 'Swipe through your daily cards',
-                desc: 'Each morning, your briefing is ready. Swipe right on what you learned, save papers for later, skip what doesn\'t click.',
-                icon: '📱',
+                num: '2',
+                title: 'Read your daily cards',
+                desc: 'Each day you get a short stack of cards. Swipe through them — mark what was useful, save papers to read later, skip what\'s not relevant.',
               },
               {
-                num: '03',
-                title: 'Build expertise over time',
-                desc: 'The app remembers what you know. Lessons get deeper. Papers resurface with fresh angles. You level up without trying.',
-                icon: '🧠',
+                num: '3',
+                title: 'It adapts to you',
+                desc: 'The app tracks what you\'ve seen so it doesn\'t repeat itself. Papers you liked come back later with a different angle. The summaries adjust as you learn more.',
               },
             ].map((step, i) => (
               <RevealSection key={step.num} delay={i * 150}>
-                <div className="text-center sm:text-left">
-                  <div className="text-4xl mb-4">{step.icon}</div>
-                  <p className="text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2">
-                    {step.num}
+                <div>
+                  <p className="text-3xl font-bold text-primary-light mb-3">
+                    {step.num}.
                   </p>
-                  <h3 className="text-xl font-semibold text-white mb-3">
+                  <h3 className="text-lg font-semibold text-white mb-3">
                     {step.title}
                   </h3>
                   <p className="text-slate-400 leading-relaxed text-sm">
@@ -306,34 +263,33 @@ export default function LandingPage() {
       </section>
 
       {/* ----------------------------------------------------------------- */}
-      {/* THE LEARNING PATH SECTION */}
+      {/* LEARNING PATHS */}
       {/* ----------------------------------------------------------------- */}
       <section className="py-32 px-6 border-t border-white/5">
         <div className="max-w-5xl mx-auto">
           <div className="grid sm:grid-cols-2 gap-16 items-center">
             <RevealSection>
-              <p className="text-xs font-semibold tracking-[0.3em] uppercase text-secondary mb-4">
+              <p className="text-xs font-semibold tracking-[0.2em] uppercase text-secondary mb-4">
                 Learning Paths
               </p>
               <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-6">
-                Not just news.
-                <br />A curriculum built for you.
+                Or learn something from scratch.
               </h2>
-              <p className="text-slate-400 leading-relaxed mb-8">
-                When you choose &ldquo;Learn,&rdquo; Claude designs a complete syllabus —
-                from fundamentals to frontier research. Each lesson builds on the last.
-                Comprehension questions make you think. Spaced repetition makes it stick.
+              <p className="text-slate-400 leading-relaxed mb-4">
+                Set a category to &ldquo;Learn&rdquo; mode and it generates a full
+                syllabus for that subject — ordered from basics to advanced
+                topics. You get a couple of lessons per day, each with a
+                question to think about.
               </p>
-              <div className="space-y-3">
-                <ExpertiseDots level={5} label="Beginner → Expert progression" />
-                <ExpertiseDots level={3} label="Adapts to your level" />
-                <ExpertiseDots level={4} label="Real papers at advanced stages" />
-              </div>
+              <p className="text-slate-400 leading-relaxed">
+                At more advanced levels, it pulls in real papers from
+                PubMed, arXiv, and OpenAlex so you&rsquo;re learning from
+                actual research, not just a language model&rsquo;s memory.
+              </p>
             </RevealSection>
 
             <RevealSection delay={200}>
               <div className="relative">
-                {/* Mock syllabus card */}
                 <div className="rounded-2xl border border-white/10 bg-surface p-6 shadow-xl">
                   <p className="text-xs font-semibold tracking-widest uppercase text-primary-light mb-4">
                     Machine Learning · Lesson 14
@@ -343,16 +299,15 @@ export default function LandingPage() {
                   </h3>
                   <p className="text-sm text-slate-300 leading-relaxed mb-4">
                     The transformer architecture replaced RNNs by computing relationships
-                    between all tokens simultaneously. The key innovation: self-attention
-                    lets each word &ldquo;look at&rdquo; every other word to understand context,
-                    regardless of distance.
+                    between all tokens simultaneously. Self-attention lets each word
+                    &ldquo;look at&rdquo; every other word to understand context,
+                    regardless of distance in the sequence.
                   </p>
                   <div className="flex items-start gap-2 p-3 rounded-xl bg-white/5 border border-white/5">
                     <span className="text-base mt-0.5">💡</span>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       If self-attention compares every token to every other token,
-                      why does it become expensive for long sequences — and what
-                      are researchers doing about it?
+                      why does it get expensive for long sequences?
                     </p>
                   </div>
                   <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
@@ -360,7 +315,6 @@ export default function LandingPage() {
                     arXiv · Vaswani et al.
                   </div>
                 </div>
-                {/* Progress underneath */}
                 <div className="mt-4 flex items-center justify-between px-1">
                   <span className="text-xs text-slate-500">14 of 82 topics</span>
                   <div className="w-32 h-1.5 rounded-full bg-surface-light overflow-hidden">
@@ -374,20 +328,17 @@ export default function LandingPage() {
       </section>
 
       {/* ----------------------------------------------------------------- */}
-      {/* SOURCES SECTION */}
+      {/* SOURCES */}
       {/* ----------------------------------------------------------------- */}
       <section className="py-32 px-6 border-t border-white/5">
         <div className="max-w-4xl mx-auto text-center">
           <RevealSection>
-            <p className="text-xs font-semibold tracking-[0.3em] uppercase text-primary-light mb-4">
-              Real Sources
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-              Grounded in the world&rsquo;s research.
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              Where the content comes from.
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto mb-16">
-              Every card traces back to a real source. News from the web,
-              papers from the databases that researchers actually use.
+            <p className="text-slate-400 max-w-xl mx-auto mb-16">
+              Cards link back to the original source so you can go deeper
+              whenever you want.
             </p>
           </RevealSection>
 
@@ -396,7 +347,7 @@ export default function LandingPage() {
               { name: 'PubMed', desc: '36M+ biomedical articles', icon: '🧬' },
               { name: 'arXiv', desc: '2.4M+ STEM preprints', icon: '🔬' },
               { name: 'OpenAlex', desc: '250M+ scholarly works', icon: '📚' },
-              { name: 'Google News', desc: 'Real-time news', icon: '📰' },
+              { name: 'Google News', desc: 'Current events', icon: '📰' },
             ].map((source, i) => (
               <RevealSection key={source.name} delay={i * 100}>
                 <div className="p-5 rounded-2xl bg-surface/60 border border-white/5">
@@ -449,23 +400,23 @@ export default function LandingPage() {
                 ))}
               </div>
               <p className="text-xs text-slate-500 text-center mt-4">
-                Retention increases as review intervals grow
+                Review intervals grow as retention improves
               </p>
             </RevealSection>
 
             <RevealSection>
-              <p className="text-xs font-semibold tracking-[0.3em] uppercase text-emerald-400 mb-4">
+              <p className="text-xs font-semibold tracking-[0.2em] uppercase text-emerald-400 mb-4">
                 Spaced Repetition
               </p>
               <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-6">
-                You don&rsquo;t just read it.
-                <br />You remember it.
+                Things you liked come back.
               </h2>
               <p className="text-slate-400 leading-relaxed">
-                Papers you find interesting resurface automatically — at 1, 2, 4, 7,
-                14, 30, then 60 day intervals. Each time with a fresh angle: a practical
-                application, a connection to something new, a question that makes you think
-                differently. The science of memory, built in.
+                When you mark a paper as interesting, it shows up again later —
+                first the next day, then after 2 days, 4, 7, 14, and so on. Each
+                time it highlights something different: a practical application,
+                a limitation, a connection you might have missed. Same paper,
+                new perspective.
               </p>
             </RevealSection>
           </div>
@@ -473,33 +424,33 @@ export default function LandingPage() {
       </section>
 
       {/* ----------------------------------------------------------------- */}
-      {/* SOCIAL PROOF / VALUES */}
+      {/* WHAT THIS IS / ISN'T */}
       {/* ----------------------------------------------------------------- */}
       <section className="py-32 px-6 border-t border-white/5">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-3xl mx-auto">
           <RevealSection>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-16">
-              Built on principles.
+            <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">
+              What this is.
             </h2>
           </RevealSection>
 
-          <div className="grid sm:grid-cols-2 gap-8 text-left">
+          <div className="grid sm:grid-cols-2 gap-8">
             {[
               {
-                title: 'Depth over breadth',
-                desc: 'We\'d rather you deeply understand 3 things than skim 30. Every card is designed to create lasting knowledge.',
+                title: 'A side project, not a startup',
+                desc: 'Built for friends and family who wanted a better way to keep up with research. Free to use, open source.',
               },
               {
-                title: 'Your data, your growth',
-                desc: 'No ads. No engagement tricks. The only metric that matters is whether you\'re learning.',
+                title: 'Cards, not papers',
+                desc: '2-3 sentence summaries with a link to the original. Enough to know what\'s happening — you decide when to go deeper.',
               },
               {
-                title: 'AI as teacher, not replacement',
-                desc: 'Claude adapts to your level, finds papers you\'d miss, and asks questions that make you think. It doesn\'t think for you.',
+                title: 'Gets better with use',
+                desc: 'It tracks what you\'ve seen, adjusts difficulty, and stops showing you the same things. Not magic, just bookkeeping.',
               },
               {
-                title: 'Free for learners',
-                desc: 'Daily Kernel is free for friends and family. Great tools for learning shouldn\'t have a paywall.',
+                title: 'AI-generated, source-linked',
+                desc: 'Summaries are written by Claude. Every card links to the real paper or article so you can verify and read more.',
               },
             ].map((value, i) => (
               <RevealSection key={value.title} delay={i * 100}>
@@ -514,41 +465,34 @@ export default function LandingPage() {
       </section>
 
       {/* ----------------------------------------------------------------- */}
-      {/* FINAL CTA */}
+      {/* CTA */}
       {/* ----------------------------------------------------------------- */}
       <section className="py-32 px-6 border-t border-white/5">
         <div className="max-w-2xl mx-auto text-center">
           <RevealSection>
             <div className="text-5xl mb-6">🌱</div>
-            <h2 className="text-3xl sm:text-5xl font-bold text-white leading-tight mb-6">
-              Start becoming the expert
-              <br />
-              <span className="bg-gradient-to-r from-primary-light to-indigo-300 bg-clip-text text-transparent">
-                you were meant to be.
-              </span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-6">
+              Give it a try.
             </h2>
             <p className="text-lg text-slate-400 mb-10 max-w-md mx-auto">
-              Five minutes a day. Real papers. Real growth.
-              <br />
-              No credit card. No commitment.
+              Pick a couple of topics, see if the cards are useful.
+              Takes about a minute to set up.
             </p>
             <Link
               href="/login"
-              className="inline-block px-10 py-4 rounded-full text-lg font-semibold bg-primary hover:bg-primary-light text-white transition-all hover:scale-105 shadow-lg shadow-primary/25"
+              className="inline-block px-10 py-4 rounded-full text-lg font-semibold bg-primary hover:bg-primary-light text-white transition-all shadow-lg shadow-primary/25"
             >
-              Get Started — It&rsquo;s Free
+              Try It Free
             </Link>
           </RevealSection>
         </div>
       </section>
 
-      {/* ----------------------------------------------------------------- */}
       {/* FOOTER */}
-      {/* ----------------------------------------------------------------- */}
       <footer className="py-12 px-6 border-t border-white/5">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <span className="text-sm text-slate-500">
-            🌱 Daily Kernel · Built with Claude
+            🌱 Daily Kernel
           </span>
           <div className="flex items-center gap-6 text-sm text-slate-500">
             <Link href="/login" className="hover:text-white transition-colors">
@@ -566,9 +510,6 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* GLOBAL ANIMATIONS */}
-      {/* ----------------------------------------------------------------- */}
       <style jsx global>{`
         @keyframes float {
           0%, 100% { transform: rotate(var(--rotation, 0deg)) translateY(var(--offset, 0px)); }
