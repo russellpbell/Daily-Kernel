@@ -49,12 +49,14 @@ class APIClient: ObservableObject {
         return e
     }()
 
-    func request<T: Decodable>(
+    // MARK: - Request Building & Execution
+
+    private func buildRequest(
         path: String,
-        method: String = "GET",
-        body: [String: Any]? = nil,
+        method: String,
+        body: [String: Any]?,
         queryParams: [String: String]? = nil
-    ) async throws -> T {
+    ) throws -> URLRequest {
         var urlString = "\(baseURL)\(path)"
         if let params = queryParams, !params.isEmpty {
             let query = params.map { key, value in
@@ -81,6 +83,10 @@ class APIClient: ObservableObject {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
 
+        return request
+    }
+
+    private func executeRequest(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let data: Data
         let response: URLResponse
         do {
@@ -93,11 +99,10 @@ class APIClient: ObservableObject {
             throw APIError.serverError("Invalid response")
         }
 
+        // Handle 401 with token refresh + retry
         if httpResponse.statusCode == 401 {
-            // Try to refresh the token before signing out
             do {
                 try await AuthService.shared.refreshSession()
-                // Retry with the new token
                 if let newToken = AuthService.shared.accessToken {
                     var retryRequest = request
                     retryRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
@@ -110,17 +115,11 @@ class APIClient: ObservableObject {
                         throw APIError.unauthorized
                     }
                     if retryHttp.statusCode >= 400 {
-                        if let errorBody = try? JSONSerialization.jsonObject(with: retryData) as? [String: Any],
-                           let errorMsg = errorBody["error"] as? String {
-                            throw APIError.serverError(errorMsg)
-                        }
-                        throw APIError.serverError("HTTP \(retryHttp.statusCode)")
+                        throw parseError(from: retryData, statusCode: retryHttp.statusCode)
                     }
-                    return try decoder.decode(T.self, from: retryData)
+                    return (retryData, retryHttp)
                 }
             } catch let apiError as APIError {
-                // Propagate specific API errors (e.g. serverError from retry)
-                // but sign out only on unauthorized
                 if case .unauthorized = apiError {
                     AuthService.shared.signOut()
                 }
@@ -129,19 +128,35 @@ class APIClient: ObservableObject {
                 AuthService.shared.signOut()
                 throw APIError.unauthorized
             }
-            // If refresh succeeded but no token was available, sign out
             AuthService.shared.signOut()
             throw APIError.unauthorized
         }
 
         if httpResponse.statusCode >= 400 {
-            if let errorBody = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let errorMsg = errorBody["error"] as? String {
-                throw APIError.serverError(errorMsg)
-            }
-            throw APIError.serverError("HTTP \(httpResponse.statusCode)")
+            throw parseError(from: data, statusCode: httpResponse.statusCode)
         }
 
+        return (data, httpResponse)
+    }
+
+    private func parseError(from data: Data, statusCode: Int) -> APIError {
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let msg = json["error"] as? String {
+            return .serverError(msg)
+        }
+        return .serverError("HTTP \(statusCode)")
+    }
+
+    // MARK: - Public Request Methods
+
+    func request<T: Decodable>(
+        path: String,
+        method: String = "GET",
+        body: [String: Any]? = nil,
+        queryParams: [String: String]? = nil
+    ) async throws -> T {
+        let urlRequest = try buildRequest(path: path, method: method, body: body, queryParams: queryParams)
+        let (data, _) = try await executeRequest(urlRequest)
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
@@ -149,96 +164,14 @@ class APIClient: ObservableObject {
         }
     }
 
-    // Helper for requests that return no meaningful body
     private func requestVoid(
         path: String,
         method: String = "GET",
         body: [String: Any]? = nil,
         queryParams: [String: String]? = nil
     ) async throws {
-        var urlString = "\(baseURL)\(path)"
-        if let params = queryParams, !params.isEmpty {
-            let query = params.map { key, value in
-                let escapedKey = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? key
-                let escapedValue = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
-                return "\(escapedKey)=\(escapedValue)"
-            }.joined(separator: "&")
-            urlString += "?\(query)"
-        }
-
-        guard let url = URL(string: urlString) else {
-            throw APIError.serverError("Invalid URL")
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        if let token = authToken {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-
-        if let body = body {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        }
-
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch {
-            throw APIError.networkError(error)
-        }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.serverError("Invalid response")
-        }
-
-        if httpResponse.statusCode == 401 {
-            // Try to refresh the token before signing out
-            do {
-                try await AuthService.shared.refreshSession()
-                // Retry with the new token
-                if let newToken = AuthService.shared.accessToken {
-                    var retryRequest = request
-                    retryRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
-                    let (retryData, retryResponse) = try await session.data(for: retryRequest)
-                    guard let retryHttp = retryResponse as? HTTPURLResponse else {
-                        throw APIError.serverError("Invalid response")
-                    }
-                    if retryHttp.statusCode == 401 {
-                        AuthService.shared.signOut()
-                        throw APIError.unauthorized
-                    }
-                    if retryHttp.statusCode >= 400 {
-                        if let errorBody = try? JSONSerialization.jsonObject(with: retryData) as? [String: Any],
-                           let errorMsg = errorBody["error"] as? String {
-                            throw APIError.serverError(errorMsg)
-                        }
-                        throw APIError.serverError("HTTP \(retryHttp.statusCode)")
-                    }
-                    return
-                }
-            } catch let apiError as APIError {
-                if case .unauthorized = apiError {
-                    AuthService.shared.signOut()
-                }
-                throw apiError
-            } catch {
-                AuthService.shared.signOut()
-                throw APIError.unauthorized
-            }
-            AuthService.shared.signOut()
-            throw APIError.unauthorized
-        }
-
-        if httpResponse.statusCode >= 400 {
-            if let errorBody = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let errorMsg = errorBody["error"] as? String {
-                throw APIError.serverError(errorMsg)
-            }
-            throw APIError.serverError("HTTP \(httpResponse.statusCode)")
-        }
+        let urlRequest = try buildRequest(path: path, method: method, body: body, queryParams: queryParams)
+        _ = try await executeRequest(urlRequest)
     }
 
     // MARK: - Briefings

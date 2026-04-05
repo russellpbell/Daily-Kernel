@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle curriculum topic progress
-    if (card && card.topic_index !== null && card.topic_index !== undefined) {
+    if (card && card.topic_index !== null && card.topic_index !== undefined && card.topic_index >= 0) {
       const { data: categoryData } = await supabase
         .from('categories')
         .select('source_type')

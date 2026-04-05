@@ -27,47 +27,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Already subscribed' }, { status: 400 });
   }
 
-  // Find the free pass code
-  const { data: pass } = await supabase
-    .from('free_passes')
-    .select('*')
-    .eq('code', code.toUpperCase().trim())
-    .single();
-
-  if (!pass) {
-    return NextResponse.json({ error: 'Invalid code' }, { status: 404 });
-  }
-
-  if (pass.is_redeemed) {
-    return NextResponse.json({ error: 'Code has already been redeemed' }, { status: 400 });
-  }
-
-  if (pass.expires_at && new Date(pass.expires_at) < new Date()) {
-    return NextResponse.json({ error: 'Code has expired' }, { status: 400 });
-  }
-
-  // Redeem the code
-  const { error: updatePassError } = await supabase
+  // Atomic update - only succeeds if pass exists and is not redeemed
+  const { data: pass, error: passError } = await supabase
     .from('free_passes')
     .update({ is_redeemed: true, redeemed_by: userId })
-    .eq('id', pass.id);
+    .eq('code', code.toUpperCase().trim())
+    .eq('is_redeemed', false)
+    .select('id, expires_at')
+    .single();
 
-  if (updatePassError) {
-    return NextResponse.json({ error: 'Failed to redeem code' }, { status: 500 });
+  if (passError || !pass) {
+    return NextResponse.json({ error: 'Invalid or already redeemed code' }, { status: 400 });
   }
 
-  // Update user subscription status
-  const { error: updateUserError } = await supabase
-    .from('users')
-    .update({
-      subscription_status: 'free_pass',
-      free_pass_code: code.toUpperCase().trim(),
-    })
-    .eq('id', userId);
-
-  if (updateUserError) {
-    return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 });
+  // Check expiration after atomic claim
+  if (pass.expires_at && new Date(pass.expires_at) < new Date()) {
+    // Revert the claim
+    await supabase.from('free_passes').update({ is_redeemed: false, redeemed_by: null }).eq('id', pass.id);
+    return NextResponse.json({ error: 'This code has expired' }, { status: 400 });
   }
+
+  // Activate user subscription
+  await supabase.from('users').update({
+    subscription_status: 'free_pass',
+    free_pass_code: code.toUpperCase().trim(),
+  }).eq('id', userId);
 
   return NextResponse.json({ success: true });
 }

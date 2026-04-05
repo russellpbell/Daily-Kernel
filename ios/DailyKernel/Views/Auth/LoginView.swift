@@ -9,6 +9,11 @@ struct LoginView: View {
     @State private var codeSent = false
     @State private var isLoading = false
     @State private var error: String?
+    @FocusState private var focusedField: LoginField?
+
+    private enum LoginField {
+        case email, code
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -78,9 +83,16 @@ struct LoginView: View {
             if !codeSent {
                 TextField("Email", text: $email)
                     .textFieldStyle(.plain)
+                    .focused($focusedField, equals: .email)
                     .keyboardType(.emailAddress)
                     .textContentType(.emailAddress)
                     .autocapitalization(.none)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        if !email.isEmpty {
+                            Task { await sendCode() }
+                        }
+                    }
                     .padding()
                     .frame(height: 50)
                     .background(Color.appSurface)
@@ -112,10 +124,17 @@ struct LoginView: View {
 
                 TextField("Verification code", text: $code)
                     .textFieldStyle(.plain)
+                    .focused($focusedField, equals: .code)
                     .keyboardType(.numberPad)
                     .textContentType(.oneTimeCode)
                     .multilineTextAlignment(.center)
                     .font(.system(size: 24, weight: .semibold, design: .monospaced))
+                    .submitLabel(.done)
+                    .onSubmit {
+                        if code.count >= 6 {
+                            Task { await verifyCode() }
+                        }
+                    }
                     .padding()
                     .frame(height: 50)
                     .background(Color.appSurface)
@@ -143,6 +162,12 @@ struct LoginView: View {
             }
         }
         .padding(.top, 20)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focusedField = nil }
+            }
+        }
     }
 
     private func handleAppleResult(_ result: Result<ASAuthorization, Error>) {

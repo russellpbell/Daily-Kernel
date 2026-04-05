@@ -85,7 +85,9 @@ struct InterestFeedView: View {
                                         .tint(Color.appPrimaryLight)
                                         .padding()
                                         .onAppear {
-                                            Task { await loadMore() }
+                                            if !isLoadingMore && hasMore {
+                                                Task { await loadMore() }
+                                            }
                                         }
                                 }
                             }

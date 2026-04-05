@@ -8,6 +8,7 @@ struct CategoriesView: View {
     @State private var showError = false
     @State private var isAdding = false
     @State private var addBounce = 0
+    @FocusState private var isCategoryFieldFocused: Bool
 
     private let api = APIClient.shared
 
@@ -58,6 +59,12 @@ struct CategoriesView: View {
         } message: {
             Text(errorMessage ?? "Something went wrong")
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { isCategoryFieldFocused = false }
+            }
+        }
         .task {
             await loadCategories()
         }
@@ -69,6 +76,14 @@ struct CategoriesView: View {
         HStack(spacing: 12) {
             TextField("New category name", text: $newCategoryName)
                 .textFieldStyle(.plain)
+                .focused($isCategoryFieldFocused)
+                .submitLabel(.done)
+                .onSubmit {
+                    if !newCategoryName.trimmingCharacters(in: .whitespaces).isEmpty {
+                        addBounce += 1
+                        addCategory(name: newCategoryName)
+                    }
+                }
                 .padding(12)
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -167,16 +182,16 @@ struct CategoriesView: View {
                     category: category,
                     sourceTypes: sourceTypes,
                     onToggle: { isActive in
-                        updateCategory(at: index, updates: ["is_active": isActive])
+                        updateCategory(id: category.id, updates: ["is_active": isActive])
                     },
                     onSourceTypeChange: { sourceType in
-                        updateCategory(at: index, updates: ["source_type": sourceType])
+                        updateCategory(id: category.id, updates: ["source_type": sourceType])
                     },
                     onWeightChange: { weight in
-                        updateCategory(at: index, updates: ["weight": weight])
+                        updateCategory(id: category.id, updates: ["weight": weight])
                     },
                     onDelete: {
-                        deleteCategory(at: index)
+                        deleteCategory(id: category.id)
                     }
                 )
             }
@@ -210,6 +225,7 @@ struct CategoriesView: View {
                     categories.append(response.category)
                 }
                 newCategoryName = ""
+                isCategoryFieldFocused = false
             } catch {
                 errorMessage = error.localizedDescription
                 showError = true
@@ -218,8 +234,8 @@ struct CategoriesView: View {
         }
     }
 
-    private func updateCategory(at index: Int, updates: [String: Any]) {
-        guard index < categories.count else { return }
+    private func updateCategory(id: String, updates: [String: Any]) {
+        guard let index = categories.firstIndex(where: { $0.id == id }) else { return }
         let category = categories[index]
 
         // Optimistic local update
@@ -245,22 +261,22 @@ struct CategoriesView: View {
         Task {
             do {
                 let response = try await api.updateCategory(id: category.id, updates: updates)
-                if index < categories.count {
-                    categories[index] = response.category
+                if let currentIndex = categories.firstIndex(where: { $0.id == id }) {
+                    categories[currentIndex] = response.category
                 }
             } catch {
                 errorMessage = error.localizedDescription
                 showError = true
                 // Revert on failure
-                if index < categories.count {
-                    categories[index] = category
+                if let currentIndex = categories.firstIndex(where: { $0.id == id }) {
+                    categories[currentIndex] = category
                 }
             }
         }
     }
 
-    private func deleteCategory(at index: Int) {
-        guard index < categories.count else { return }
+    private func deleteCategory(id: String) {
+        guard let index = categories.firstIndex(where: { $0.id == id }) else { return }
         let category = categories[index]
         withAnimation(.spring(response: 0.3)) {
             categories.remove(at: index)

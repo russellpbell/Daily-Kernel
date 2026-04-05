@@ -11,6 +11,7 @@ struct PaywallView: View {
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var redeemSuccess = false
+    @FocusState private var isPassCodeFocused: Bool
 
     var body: some View {
         ZStack {
@@ -95,10 +96,17 @@ struct PaywallView: View {
                                 HStack(spacing: 8) {
                                     TextField("XXXXXXXX", text: $passCode)
                                         .textFieldStyle(.plain)
+                                        .focused($isPassCodeFocused)
                                         .font(.body.monospaced())
                                         .multilineTextAlignment(.center)
                                         .textInputAutocapitalization(.characters)
                                         .disableAutocorrection(true)
+                                        .submitLabel(.done)
+                                        .onSubmit {
+                                            if passCode.count == 8 {
+                                                Task { await handleRedeem() }
+                                            }
+                                        }
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 10)
                                         .background(Color.appSurface)
@@ -145,6 +153,12 @@ struct PaywallView: View {
 
                     Spacer().frame(height: 40)
                 }
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { isPassCodeFocused = false }
             }
         }
         .alert("Error", isPresented: $showError) {

@@ -26,6 +26,11 @@ export async function PATCH(
     }
 
     const body = await request.json();
+
+    if (body.weight !== undefined && (typeof body.weight !== 'number' || body.weight < 0 || body.weight > 100)) {
+      return NextResponse.json({ error: 'Weight must be between 0 and 100' }, { status: 400 });
+    }
+
     const updates: Record<string, unknown> = {};
     if (body.name !== undefined) updates.name = body.name;
     if (body.weight !== undefined) updates.weight = body.weight;

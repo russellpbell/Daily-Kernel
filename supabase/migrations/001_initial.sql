@@ -144,7 +144,8 @@ CREATE TABLE knowledge_entries (
   times_seen INTEGER NOT NULL DEFAULT 1,
   first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  expertise_level INTEGER NOT NULL DEFAULT 1  -- 1=beginner, 2=familiar, 3=intermediate, 4=advanced, 5=expert
+  expertise_level INTEGER NOT NULL DEFAULT 1,  -- 1=beginner, 2=familiar, 3=intermediate, 4=advanced, 5=expert
+  UNIQUE(user_id, topic)
 );
 
 -- User expertise level per category (aggregated)
