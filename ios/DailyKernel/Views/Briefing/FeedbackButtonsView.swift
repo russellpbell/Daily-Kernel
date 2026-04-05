@@ -6,28 +6,26 @@ struct FeedbackButtonsView: View {
     var onLearned: () -> Void
 
     var body: some View {
-        HStack(spacing: 40) {
-            // Skip
+        HStack(spacing: 20) {
             FeedbackButton(
                 icon: "xmark",
                 label: "Skip",
-                color: .red,
+                tint: .red,
                 action: onSkip
             )
 
-            // Read Later
             FeedbackButton(
                 icon: "bookmark",
                 label: "Read Later",
-                color: .blue,
+                tint: .blue,
                 action: onSave
             )
+            .scaleEffect(0.9)
 
-            // Learned
             FeedbackButton(
                 icon: "lightbulb.fill",
                 label: "Learned",
-                color: .green,
+                tint: .green,
                 action: onLearned
             )
         }
@@ -35,39 +33,49 @@ struct FeedbackButtonsView: View {
     }
 }
 
-private struct FeedbackButton: View {
+struct FeedbackButton: View {
     let icon: String
     let label: String
-    let color: Color
+    let tint: Color
     let action: () -> Void
 
-    @State private var isPressed = false
+    @State private var tapCount = 0
 
     var body: some View {
         Button {
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
+            tapCount += 1
             action()
         } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(color)
+                    .font(.system(size: 22, weight: .medium))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
                     .frame(width: 56, height: 56)
-                    .background(color.opacity(0.15))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .scaleEffect(isPressed ? 0.9 : 1.0)
+                    .background(
+                        ZStack {
+                            tint.opacity(0.12)
+                            Circle().fill(.ultraThinMaterial)
+                        }
+                    )
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .strokeBorder(tint.opacity(0.2), lineWidth: 0.5)
+                    )
 
                 Text(label)
-                    .font(.caption2)
-                    .foregroundStyle(.gray)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
             }
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(FeedbackScaleButtonStyle())
+        .sensoryFeedback(.impact(weight: .light), trigger: tapCount)
+        .accessibilityLabel(label)
     }
 }
 
-private struct ScaleButtonStyle: ButtonStyle {
+private struct FeedbackScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.9 : 1.0)

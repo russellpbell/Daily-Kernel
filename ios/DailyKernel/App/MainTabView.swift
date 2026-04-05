@@ -5,52 +5,58 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            BriefingView()
-                .tabItem {
-                    Image(systemName: "house.fill")
-                    Text("Home")
-                }
-                .tag(0)
+            NavigationStack {
+                BriefingView()
+                    .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            }
+            .tabItem {
+                Label("Briefing", systemImage: "newspaper.fill")
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .tag(0)
 
-            LibraryView()
-                .tabItem {
-                    Image(systemName: "books.vertical")
-                    Text("Library")
-                }
-                .tag(1)
+            NavigationStack {
+                LibraryView()
+                    .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            }
+            .tabItem {
+                Label("Library", systemImage: "books.vertical.fill")
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .tag(1)
 
-            CategoriesView()
-                .tabItem {
-                    Image(systemName: "square.grid.2x2")
-                    Text("Categories")
-                }
-                .tag(2)
+            NavigationStack {
+                CategoriesView()
+                    .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            }
+            .tabItem {
+                Label("Topics", systemImage: "square.grid.2x2.fill")
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .tag(2)
 
-            StatsView()
-                .tabItem {
-                    Image(systemName: "chart.bar")
-                    Text("Stats")
-                }
-                .tag(3)
+            NavigationStack {
+                StatsView()
+                    .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            }
+            .tabItem {
+                Label("Progress", systemImage: "chart.bar.fill")
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .tag(3)
 
-            SettingsView()
-                .tabItem {
-                    Image(systemName: "gearshape")
-                    Text("Settings")
-                }
-                .tag(4)
+            NavigationStack {
+                SettingsView()
+                    .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gearshape.fill")
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .tag(4)
         }
         .tint(Color.appPrimary)
-        .onAppear {
-            let appearance = UITabBarAppearance()
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = UIColor(Color.appBackground)
-            appearance.stackedLayoutAppearance.normal.iconColor = UIColor.gray
-            appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.gray]
-            appearance.stackedLayoutAppearance.selected.iconColor = UIColor(Color.appPrimary)
-            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(Color.appPrimary)]
-            UITabBar.appearance().standardAppearance = appearance
-            UITabBar.appearance().scrollEdgeAppearance = appearance
-        }
+        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+        .sensoryFeedback(.selection, trigger: selectedTab)
     }
 }

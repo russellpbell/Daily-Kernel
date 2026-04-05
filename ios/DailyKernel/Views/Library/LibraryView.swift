@@ -24,54 +24,54 @@ struct LibraryView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.appBackground.ignoresSafeArea()
+        ZStack {
+            Color.appBackground.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    // Tab picker
-                    Picker("Section", selection: $selectedTab) {
-                        ForEach(LibraryTab.allCases, id: \.self) { tab in
-                            Text(tab.rawValue).tag(tab)
-                        }
+            VStack(spacing: 0) {
+                // Tab picker
+                Picker("Section", selection: $selectedTab) {
+                    ForEach(LibraryTab.allCases, id: \.self) { tab in
+                        Text(tab.rawValue).tag(tab)
                     }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    .onChange(of: selectedTab) { _, newValue in
-                        Task {
-                            if newValue == .readingList {
-                                await loadReadingList()
-                            } else {
-                                await loadKnowledge()
-                            }
-                        }
-                    }
-
-                    if isLoading {
-                        Spacer()
-                        LoadingView(message: "Loading...")
-                        Spacer()
-                    } else {
-                        switch selectedTab {
-                        case .readingList:
-                            readingListSection
-                        case .knowledge:
-                            knowledgeSection
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .sensoryFeedback(.selection, trigger: selectedTab)
+                .onChange(of: selectedTab) { _, newValue in
+                    Task {
+                        if newValue == .readingList {
+                            await loadReadingList()
+                        } else {
+                            await loadKnowledge()
                         }
                     }
                 }
+
+                if isLoading {
+                    Spacer()
+                    LoadingView(message: "Loading...")
+                    Spacer()
+                } else {
+                    switch selectedTab {
+                    case .readingList:
+                        readingListSection
+                    case .knowledge:
+                        knowledgeSection
+                    }
+                }
             }
-            .navigationTitle("Library")
-            .navigationBarTitleDisplayMode(.inline)
-            .alert("Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "Something went wrong")
-            }
-            .task {
-                await loadReadingList()
-            }
+        }
+        .navigationTitle("Library")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "Something went wrong")
+        }
+        .task {
+            await loadReadingList()
         }
     }
 
@@ -79,7 +79,7 @@ struct LibraryView: View {
 
     private var readingListSection: some View {
         VStack(spacing: 0) {
-            // Filter pills
+            // Filter pills with glass effect
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(ReadFilter.allCases, id: \.self) { filter in
@@ -91,17 +91,37 @@ struct LibraryView: View {
                         } label: {
                             Text(filter.rawValue)
                                 .font(.subheadline.weight(.medium))
-                                .foregroundStyle(readFilter == filter ? .white : .gray)
+                                .foregroundStyle(readFilter == filter ? .white : .secondary)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
-                                .background(readFilter == filter ? Color.appPrimary : Color.appSurface)
-                                .cornerRadius(20)
+                                .background(
+                                    ZStack {
+                                        if readFilter == filter {
+                                            Color.appPrimary
+                                        } else {
+                                            Color.clear
+                                        }
+                                        Capsule().fill(.ultraThinMaterial)
+                                    }
+                                )
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(
+                                            readFilter == filter
+                                                ? Color.appPrimary.opacity(0.5)
+                                                : Color.glassBorder,
+                                            lineWidth: 0.5
+                                        )
+                                )
                         }
+                        .accessibilityLabel("Filter: \(filter.rawValue)")
                     }
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 12)
             }
+            .sensoryFeedback(.selection, trigger: readFilter)
 
             if readingListItems.isEmpty {
                 Spacer()
@@ -120,8 +140,12 @@ struct LibraryView: View {
                             onDelete: { deleteItem(item) },
                             onUpdateNotes: { notes in updateNotes(item, notes: notes) }
                         )
-                        .listRowBackground(Color.appBackground)
-                        .listRowSeparatorTint(Color.appSurfaceLight.opacity(0.5))
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .padding(.vertical, 2)
+                        )
+                        .listRowSeparatorTint(Color.glassBorder)
                     }
                 }
                 .listStyle(.plain)
@@ -147,7 +171,7 @@ struct LibraryView: View {
                     // Expertise cards
                     Text("Your Expertise")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                         .padding(.horizontal)
 
                     LazyVStack(spacing: 12) {
@@ -161,7 +185,7 @@ struct LibraryView: View {
                     if !recentTopics.isEmpty {
                         Text("Recent Topics")
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                             .padding(.horizontal)
                             .padding(.top, 8)
 
@@ -171,13 +195,13 @@ struct LibraryView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(topic.topic)
                                             .font(.subheadline)
-                                            .foregroundStyle(.white)
+                                            .foregroundStyle(.primary)
 
                                         HStack(spacing: 8) {
                                             CategoryBadge(name: topic.categoryName)
                                             Text("Seen \(topic.timesSeen)x")
                                                 .font(.caption2)
-                                                .foregroundStyle(.gray)
+                                                .foregroundStyle(.tertiary)
                                         }
                                     }
 
@@ -185,11 +209,9 @@ struct LibraryView: View {
 
                                     Text(topic.lastSeenAt.relativeDate())
                                         .font(.caption2)
-                                        .foregroundStyle(.gray)
+                                        .foregroundStyle(.tertiary)
                                 }
-                                .padding(12)
-                                .background(Color.appSurface)
-                                .cornerRadius(12)
+                                .glassCard(cornerRadius: 12, padding: 12)
                             }
                         }
                         .padding(.horizontal)

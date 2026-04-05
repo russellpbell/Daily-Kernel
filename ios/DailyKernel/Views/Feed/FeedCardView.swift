@@ -1,30 +1,33 @@
 import SwiftUI
+import SafariServices
 
 struct FeedCardView: View {
     let item: FeedItem
     @State private var showWebView = false
 
+    private var categoryColors: (Color, Color) {
+        CategoryColors.forCategory(item.categoryName)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Top row: category + badges
+            // Top row: category + source badge
             HStack {
                 CategoryBadge(name: item.categoryName)
-
                 Spacer()
-
                 sourceBadge
             }
 
             // Title
             Text(item.title)
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
                 .lineLimit(3)
 
             // Summary
             Text(item.summary)
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(.secondary)
                 .lineSpacing(3)
                 .lineLimit(6)
 
@@ -44,6 +47,7 @@ struct FeedCardView: View {
                             }
                             .foregroundStyle(Color.appPrimaryLight)
                         }
+                        .accessibilityLabel("Open \(sourceName) in browser")
                         .sheet(isPresented: $showWebView) {
                             SafariWebView(url: url)
                         }
@@ -55,7 +59,7 @@ struct FeedCardView: View {
                                 .font(.caption)
                                 .lineLimit(1)
                         }
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(.tertiary)
                     }
                 }
 
@@ -63,16 +67,24 @@ struct FeedCardView: View {
 
                 Text(item.timestamp.relativeDate())
                     .font(.caption2)
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(16)
-        .background(Color.appSurface)
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.appSurfaceLight.opacity(0.5), lineWidth: 1)
+        .background(
+            ZStack {
+                categoryColors.0.opacity(0.06)
+                Rectangle().fill(.ultraThinMaterial)
+            }
         )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.glassBorder, lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(item.categoryName): \(item.title)")
     }
 
     @ViewBuilder
@@ -100,14 +112,13 @@ struct FeedCardView: View {
             .foregroundStyle(color)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(color.opacity(0.15))
-            .cornerRadius(8)
+            .background(color.opacity(0.12))
+            .background(.ultraThinMaterial)
+            .clipShape(Capsule())
     }
 }
 
 // MARK: - Safari Web View
-
-import SafariServices
 
 struct SafariWebView: UIViewControllerRepresentable {
     let url: URL

@@ -8,6 +8,12 @@ extension Color {
     static let appSurfaceLight = Color(hex: "312e81")
     static let appBackground = Color(hex: "0f0d2e")
 
+    // MARK: - Glass-Friendly Colors
+
+    static let glassBackground = Color.white.opacity(0.06)
+    static let glassBorder = Color.white.opacity(0.1)
+    static let glassHighlight = Color.white.opacity(0.15)
+
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
