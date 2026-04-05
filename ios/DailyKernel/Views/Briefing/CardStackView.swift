@@ -176,11 +176,11 @@ struct CardStackView: View {
         withAnimation(.easeOut(duration: 0.3)) {
             dragOffset = exitOffset
         } completion: {
+            // Reset state for next card
             dragOffset = .zero
             dragDirection = nil
-            if !cards.isEmpty {
-                cards.removeFirst()
-            }
+
+            // Let parent handle card removal and feedback (single source of truth)
             onSwipe(card, direction)
         }
     }

@@ -14,6 +14,7 @@ struct BriefingView: View {
     @State private var showFeed = false
     @State private var confettiVisible = false
     @State private var loadTask: Task<Void, Never>?
+    @State private var feedbackError: String?
 
     private let api = APIClient.shared
 
@@ -53,6 +54,14 @@ struct BriefingView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(errorMessage ?? "Something went wrong")
+            }
+            .alert("Error", isPresented: .init(
+                get: { feedbackError != nil },
+                set: { if !$0 { feedbackError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(feedbackError ?? "Something went wrong")
             }
             .task {
                 loadTask = Task { await loadBriefing() }
@@ -328,73 +337,74 @@ struct BriefingView: View {
     }
 
     private func handleSwipe(card: Card, direction: SwipeDirection) {
+        // Process feedback
         switch direction {
-        case .left:
-            sendFeedback(card: card, action: "thumbs_down")
         case .right:
             sendFeedback(card: card, action: "thumbs_up")
+        case .left:
+            sendFeedback(card: card, action: "thumbs_down")
         case .up:
             saveCard(card)
+            sendFeedback(card: card, action: "skip")
         }
+
+        // Remove card from array (single source of truth)
+        withAnimation {
+            cards.removeAll { $0.id == card.id }
+        }
+        reviewedCount += 1
 
         if showSwipeHint {
             withAnimation { showSwipeHint = false }
         }
-    }
 
-    private func sendFeedback(card: Card, action: String) {
-        reviewedCount += 1
         if cards.isEmpty {
             withAnimation(.spring(response: 0.5)) {
                 briefingComplete = true
             }
         }
+    }
+
+    private func sendFeedback(card: Card, action: String) {
         Task {
-            try? await api.sendFeedback(cardId: card.id, action: action)
+            do {
+                try await api.sendFeedback(cardId: card.id, action: action)
+            } catch {
+                feedbackError = "Couldn't save your response. It'll sync next time."
+            }
         }
     }
 
     private func saveCard(_ card: Card) {
         savedCardIds.insert(card.id)
-        reviewedCount += 1
-        if cards.isEmpty {
-            withAnimation(.spring(response: 0.5)) {
-                briefingComplete = true
-            }
-        }
         Task {
-            try? await api.saveToReadingList(data: [
-                "card_id": card.id,
-                "title": card.title,
-                "summary": card.summary,
-                "source_url": card.sourceUrl ?? "",
-                "source_name": card.sourceName ?? "",
-                "category_name": card.categoryName
-            ])
+            do {
+                try await api.saveToReadingList(data: [
+                    "card_id": card.id,
+                    "title": card.title,
+                    "summary": card.summary,
+                    "source_url": card.sourceUrl ?? "",
+                    "source_name": card.sourceName ?? "",
+                    "category_name": card.categoryName
+                ])
+            } catch {
+                feedbackError = "Couldn't save card. It'll sync next time."
+            }
         }
     }
 
     private func skipTopCard() {
         guard let card = cards.first else { return }
-        withAnimation(.spring(response: 0.4)) {
-            cards.removeFirst()
-        }
         handleSwipe(card: card, direction: .left)
     }
 
     private func saveTopCard() {
         guard let card = cards.first else { return }
-        withAnimation(.spring(response: 0.4)) {
-            cards.removeFirst()
-        }
         handleSwipe(card: card, direction: .up)
     }
 
     private func learnedTopCard() {
         guard let card = cards.first else { return }
-        withAnimation(.spring(response: 0.4)) {
-            cards.removeFirst()
-        }
         handleSwipe(card: card, direction: .right)
     }
 }

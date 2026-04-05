@@ -17,8 +17,8 @@ class AuthService: ObservableObject {
         supabaseURL = ProcessInfo.processInfo.environment["SUPABASE_URL"] ?? "https://your-project.supabase.co"
         supabaseAnonKey = ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"] ?? ""
 
-        // Restore session from UserDefaults
-        if let token = UserDefaults.standard.string(forKey: "access_token"),
+        // Restore session from Keychain (tokens) and UserDefaults (non-sensitive)
+        if let token = KeychainHelper.read(forKey: "access_token"),
            let email = UserDefaults.standard.string(forKey: "user_email") {
             self.accessToken = token
             self.userEmail = email
@@ -35,7 +35,7 @@ class AuthService: ObservableObject {
         guard isAuthenticated else { return }
 
         // If we have a refresh token, proactively refresh to ensure a valid session
-        guard UserDefaults.standard.string(forKey: "refresh_token") != nil else {
+        guard KeychainHelper.read(forKey: "refresh_token") != nil else {
             // No refresh token stored - can't validate, leave state as-is
             return
         }
@@ -98,10 +98,10 @@ class AuthService: ObservableObject {
             self.isAuthenticated = true
 
             if let refreshToken = json["refresh_token"] as? String {
-                UserDefaults.standard.set(refreshToken, forKey: "refresh_token")
+                KeychainHelper.save(refreshToken, forKey: "refresh_token")
             }
 
-            UserDefaults.standard.set(token, forKey: "access_token")
+            KeychainHelper.save(token, forKey: "access_token")
             UserDefaults.standard.set(self.userEmail, forKey: "user_email")
 
             try? await ensureProfile()
@@ -152,12 +152,12 @@ class AuthService: ObservableObject {
             self.isAuthenticated = true
 
             // Persist
-            UserDefaults.standard.set(token, forKey: "access_token")
+            KeychainHelper.save(token, forKey: "access_token")
             UserDefaults.standard.set(email, forKey: "user_email")
 
             // Store refresh token if available
             if let refreshToken = json["refresh_token"] as? String {
-                UserDefaults.standard.set(refreshToken, forKey: "refresh_token")
+                KeychainHelper.save(refreshToken, forKey: "refresh_token")
             }
 
             // Ensure profile exists on backend
@@ -166,7 +166,7 @@ class AuthService: ObservableObject {
     }
 
     func refreshSession() async throws {
-        guard let refreshToken = UserDefaults.standard.string(forKey: "refresh_token") else {
+        guard let refreshToken = KeychainHelper.read(forKey: "refresh_token") else {
             signOut()
             throw APIError.unauthorized
         }
@@ -190,10 +190,10 @@ class AuthService: ObservableObject {
         if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
            let newToken = json["access_token"] as? String {
             self.accessToken = newToken
-            UserDefaults.standard.set(newToken, forKey: "access_token")
+            KeychainHelper.save(newToken, forKey: "access_token")
 
             if let newRefresh = json["refresh_token"] as? String {
-                UserDefaults.standard.set(newRefresh, forKey: "refresh_token")
+                KeychainHelper.save(newRefresh, forKey: "refresh_token")
             }
         } else {
             signOut()
@@ -205,9 +205,9 @@ class AuthService: ObservableObject {
         accessToken = nil
         userEmail = nil
         isAuthenticated = false
-        UserDefaults.standard.removeObject(forKey: "access_token")
+        KeychainHelper.delete(forKey: "access_token")
         UserDefaults.standard.removeObject(forKey: "user_email")
-        UserDefaults.standard.removeObject(forKey: "refresh_token")
+        KeychainHelper.delete(forKey: "refresh_token")
     }
 
     private func ensureProfile() async throws {
