@@ -219,12 +219,17 @@ class APIClient: ObservableObject {
                     }
                     return
                 }
-            } catch is APIError {
-                throw APIError.unauthorized
+            } catch let apiError as APIError {
+                if case .unauthorized = apiError {
+                    AuthService.shared.signOut()
+                }
+                throw apiError
             } catch {
                 AuthService.shared.signOut()
                 throw APIError.unauthorized
             }
+            AuthService.shared.signOut()
+            throw APIError.unauthorized
         }
 
         if httpResponse.statusCode >= 400 {
