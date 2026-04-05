@@ -30,6 +30,9 @@ export async function PATCH(
     if (body.name !== undefined) updates.name = body.name;
     if (body.weight !== undefined) updates.weight = body.weight;
     if (body.is_active !== undefined) updates.is_active = body.is_active;
+    if (body.source_type !== undefined && ['news', 'biomedical', 'stem', 'academic'].includes(body.source_type)) {
+      updates.source_type = body.source_type;
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
@@ -40,7 +43,7 @@ export async function PATCH(
       .update(updates)
       .eq('id', id)
       .eq('user_id', userId)
-      .select('id, name, weight, is_active')
+      .select('id, name, weight, is_active, source_type')
       .single();
 
     if (error) {

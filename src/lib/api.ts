@@ -1,27 +1,26 @@
-import { getToken, clearAuth } from '@/lib/storage';
+import { createBrowserClient } from '@/lib/supabase';
+import { clearAuth } from '@/lib/storage';
 
 const BASE = '';
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken();
+  const supabase = createBrowserClient();
+  const { data: { session } } = await supabase.auth.getSession();
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
   };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
   }
 
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  const res = await fetch(`${BASE}${path}`, { ...options, headers });
 
   if (res.status === 401) {
     clearAuth();
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login';
-    }
+    if (typeof window !== 'undefined') window.location.href = '/login';
     throw new Error('Unauthorized');
   }
 
@@ -34,25 +33,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  // Auth
-  login: (name: string, pin: string) =>
-    request<{
-      token: string;
-      user: { id: string; name: string; cards_per_briefing: number };
-    }>('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ name, pin }),
-    }),
-
-  register: (name: string, pin: string) =>
-    request<{
-      token: string;
-      user: { id: string; name: string; cards_per_briefing: number };
-    }>('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ name, pin }),
-    }),
-
   // Briefing
   getBriefing: (date?: string) =>
     request<{
@@ -105,29 +85,32 @@ export const api = {
         name: string;
         weight: number;
         is_active: boolean;
+        source_type: 'news' | 'biomedical' | 'stem' | 'academic';
       }>;
     }>('/api/categories'),
 
-  addCategory: (name: string) =>
+  addCategory: (name: string, source_type?: string) =>
     request<{
       category: {
         id: string;
         name: string;
         weight: number;
         is_active: boolean;
+        source_type: 'news' | 'biomedical' | 'stem' | 'academic';
       };
     }>('/api/categories', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, ...(source_type ? { source_type } : {}) }),
     }),
 
-  updateCategory: (id: string, updates: { weight?: number; is_active?: boolean }) =>
+  updateCategory: (id: string, updates: { weight?: number; is_active?: boolean; source_type?: string }) =>
     request<{
       category: {
         id: string;
         name: string;
         weight: number;
         is_active: boolean;
+        source_type: 'news' | 'biomedical' | 'stem' | 'academic';
       };
     }>(`/api/categories/${id}`, {
       method: 'PATCH',
@@ -155,16 +138,16 @@ export const api = {
     }>('/api/stats'),
 
   // Settings
-  updateSettings: (settings: { cards_per_briefing?: number }) =>
+  getSettings: () =>
     request<{
-      user: { id: string; name: string; cards_per_briefing: number };
+      user: { id: string; name: string; email: string; cards_per_briefing: number };
+    }>('/api/settings'),
+
+  updateSettings: (settings: { cards_per_briefing?: number; name?: string }) =>
+    request<{
+      user: { id: string; name: string; email: string; cards_per_briefing: number };
     }>('/api/settings', {
       method: 'PATCH',
       body: JSON.stringify(settings),
     }),
-
-  getMe: () =>
-    request<{
-      user: { id: string; name: string; cards_per_briefing: number };
-    }>('/api/auth/me'),
 };

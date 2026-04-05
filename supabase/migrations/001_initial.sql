@@ -1,8 +1,8 @@
--- Users table
+-- Users table (id matches auth.users.id from Supabase Auth)
 CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL UNIQUE,
-  pin_hash TEXT NOT NULL,
+  id UUID PRIMARY KEY,
+  name TEXT NOT NULL DEFAULT '',
+  email TEXT,
   cards_per_briefing INTEGER NOT NULL DEFAULT 10,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -14,6 +14,7 @@ CREATE TABLE categories (
   name TEXT NOT NULL,
   weight REAL NOT NULL DEFAULT 1.0,
   is_active BOOLEAN NOT NULL DEFAULT true,
+  source_type TEXT NOT NULL DEFAULT 'news' CHECK (source_type IN ('news', 'biomedical', 'stem', 'academic')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(user_id, name)
 );

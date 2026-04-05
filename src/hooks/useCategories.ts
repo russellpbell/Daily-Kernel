@@ -8,6 +8,7 @@ interface Category {
   name: string;
   weight: number;
   is_active: boolean;
+  source_type: 'news' | 'biomedical' | 'stem' | 'academic';
 }
 
 export function useCategories() {
@@ -32,16 +33,16 @@ export function useCategories() {
     fetchCategories();
   }, [fetchCategories]);
 
-  const addCategory = useCallback(async (name: string) => {
+  const addCategory = useCallback(async (name: string, source_type?: string) => {
     try {
-      const data = await api.addCategory(name);
+      const data = await api.addCategory(name, source_type);
       setCategories(prev => [...prev, data.category]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add category');
     }
   }, []);
 
-  const updateCategory = useCallback(async (id: string, updates: { weight?: number; is_active?: boolean }) => {
+  const updateCategory = useCallback(async (id: string, updates: { weight?: number; is_active?: boolean; source_type?: string }) => {
     try {
       const data = await api.updateCategory(id, updates);
       setCategories(prev => prev.map(c => (c.id === id ? data.category : c)));

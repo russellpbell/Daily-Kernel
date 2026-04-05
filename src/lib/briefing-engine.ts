@@ -8,9 +8,9 @@ import { Briefing, CardSummary } from '@/types';
  * Ensures at least 1 card per active category and the total matches the target.
  */
 function allocateCards(
-  categories: { name: string; weight: number }[],
+  categories: { name: string; weight: number; source_type?: string }[],
   totalCards: number
-): { name: string; count: number }[] {
+): { name: string; count: number; source_type?: string }[] {
   if (categories.length === 0) return [];
 
   const totalWeight = categories.reduce((sum, c) => sum + c.weight, 0);
@@ -27,12 +27,14 @@ function allocateCards(
   // Proportional allocation with minimum of 1
   const raw = categories.map((c) => ({
     name: c.name,
+    source_type: c.source_type,
     rawCount: (c.weight / totalWeight) * totalCards,
   }));
 
   // Floor each and track remainders for rounding
   const allocated = raw.map((r) => ({
     name: r.name,
+    source_type: r.source_type,
     count: Math.max(1, Math.floor(r.rawCount)),
     remainder: r.rawCount - Math.floor(r.rawCount),
   }));
@@ -61,7 +63,7 @@ function allocateCards(
     }
   }
 
-  return allocated.map((a) => ({ name: a.name, count: a.count }));
+  return allocated.map((a) => ({ name: a.name, count: a.count, source_type: a.source_type }));
 }
 
 /**
@@ -109,10 +111,10 @@ export async function generateBriefing(
 
   const cardsPerBriefing = user?.cards_per_briefing || 10;
 
-  // Get active categories with weights
+  // Get active categories with weights and source type
   const { data: categories } = await supabase
     .from('categories')
-    .select('name, weight')
+    .select('name, weight, source_type')
     .eq('user_id', userId)
     .eq('is_active', true)
     .order('weight', { ascending: false });
@@ -120,16 +122,16 @@ export async function generateBriefing(
   const activeCategories =
     categories && categories.length > 0
       ? categories
-      : [{ name: 'General News', weight: 1.0 }];
+      : [{ name: 'General News', weight: 1.0, source_type: 'news' as const }];
 
   // Allocate cards proportionally across categories
   const allocation = allocateCards(activeCategories, cardsPerBriefing);
 
   // Search news and summarize for each category in parallel
   const categoryResults = await Promise.all(
-    allocation.map(async ({ name, count }) => {
+    allocation.map(async ({ name, count, source_type }) => {
       // Search for more articles than needed to give Claude good material
-      const searchResults = await searchCategory(name, Math.min(count * 2, 10));
+      const searchResults = await searchCategory(name, Math.min(count * 2, 10), source_type || 'news');
 
       let summaries: CardSummary[];
       if (searchResults.length > 0) {

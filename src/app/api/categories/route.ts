@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     const { data: categories, error } = await supabase
       .from('categories')
-      .select('id, name, weight, is_active')
+      .select('id, name, weight, is_active, source_type')
       .eq('user_id', userId)
       .order('name');
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceClient();
     const body = await request.json();
-    const { name, weight } = body;
+    const { name, weight, source_type } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Category name is required' }, { status: 400 });
@@ -50,13 +50,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Category with this name already exists' }, { status: 409 });
     }
 
-    const insertData: { user_id: string; name: string; weight?: number } = { user_id: userId, name };
+    const insertData: { user_id: string; name: string; weight?: number; source_type?: string } = { user_id: userId, name };
     if (weight !== undefined) insertData.weight = weight;
+    if (source_type && ['news', 'biomedical', 'stem', 'academic'].includes(source_type)) {
+      insertData.source_type = source_type;
+    }
 
     const { data: category, error } = await supabase
       .from('categories')
       .insert(insertData)
-      .select('id, name, weight, is_active')
+      .select('id, name, weight, is_active, source_type')
       .single();
 
     if (error) {

@@ -11,6 +11,7 @@ export interface Category {
   name: string;
   weight: number;
   is_active: boolean;
+  source_type: 'news' | 'biomedical' | 'stem' | 'academic';
   created_at: string;
 }
 

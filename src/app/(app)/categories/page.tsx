@@ -3,7 +3,23 @@
 import { useState } from 'react';
 import { useCategories } from '@/hooks/useCategories';
 
-const SUGGESTIONS = ['AI', 'Climate', 'Space', 'Health', 'Tech', 'Finance', 'Science', 'Politics'];
+const SUGGESTIONS: { name: string; source_type: 'news' | 'biomedical' | 'stem' | 'academic' }[] = [
+  { name: 'AI', source_type: 'stem' },
+  { name: 'Climate', source_type: 'news' },
+  { name: 'Space', source_type: 'stem' },
+  { name: 'Health', source_type: 'biomedical' },
+  { name: 'Tech', source_type: 'news' },
+  { name: 'Finance', source_type: 'news' },
+  { name: 'Science', source_type: 'academic' },
+  { name: 'Politics', source_type: 'news' },
+];
+
+const SOURCE_TYPE_OPTIONS: { value: 'news' | 'biomedical' | 'stem' | 'academic'; label: string; icon: string }[] = [
+  { value: 'news', label: 'News', icon: '\u{1F4F0}' },
+  { value: 'biomedical', label: 'Biomedical', icon: '\u{1F9EC}' },
+  { value: 'stem', label: 'STEM', icon: '\u{1F52C}' },
+  { value: 'academic', label: 'Academic', icon: '\u{1F4DA}' },
+];
 
 export default function CategoriesPage() {
   const { categories, loading, error, addCategory, updateCategory, deleteCategory } = useCategories();
@@ -22,7 +38,7 @@ export default function CategoriesPage() {
   };
 
   const existingNames = new Set(categories.map(c => c.name.toLowerCase()));
-  const availableSuggestions = SUGGESTIONS.filter(s => !existingNames.has(s.toLowerCase()));
+  const availableSuggestions = SUGGESTIONS.filter(s => !existingNames.has(s.name.toLowerCase()));
 
   if (loading) {
     return (
@@ -74,11 +90,11 @@ export default function CategoriesPage() {
         <div className="flex flex-wrap gap-2 mb-6">
           {availableSuggestions.map(s => (
             <button
-              key={s}
-              onClick={() => addCategory(s)}
+              key={s.name}
+              onClick={() => addCategory(s.name, s.source_type)}
               className="px-3 py-1.5 min-h-[36px] rounded-full bg-surface-light/60 hover:bg-surface-light text-sm text-slate-300 hover:text-white border border-white/5 transition-colors"
             >
-              + {s}
+              + {s.name}
             </button>
           ))}
         </div>
@@ -145,6 +161,26 @@ export default function CategoriesPage() {
                       </svg>
                     </button>
                   )}
+                </div>
+              </div>
+
+              {/* Source type selector */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs text-slate-500 w-14">Source</span>
+                <div className="flex gap-1 flex-1">
+                  {SOURCE_TYPE_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => updateCategory(cat.id, { source_type: opt.value })}
+                      className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        cat.source_type === opt.value
+                          ? 'bg-primary/20 text-primary border border-primary/30'
+                          : 'bg-surface-light/40 text-slate-400 hover:text-slate-300 border border-white/5'
+                      }`}
+                    >
+                      {opt.icon} {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 

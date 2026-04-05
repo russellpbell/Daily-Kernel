@@ -3,18 +3,25 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { createBrowserClient } from '@/lib/supabase';
+import { clearAuth } from '@/lib/storage';
 
 export default function SettingsPage() {
   const router = useRouter();
   const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [cardsPerBriefing, setCardsPerBriefing] = useState(10);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
-    api.getMe()
+    api.getSettings()
       .then(data => {
         setUserName(data.user.name);
+        setUserEmail(data.user.email);
         setCardsPerBriefing(data.user.cards_per_briefing);
       })
       .catch(() => {})
@@ -33,8 +40,27 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem('token');
+  const handleSaveName = async () => {
+    if (!nameInput.trim() || nameInput.trim() === userName) {
+      setEditingName(false);
+      return;
+    }
+    setSavingName(true);
+    try {
+      const data = await api.updateSettings({ name: nameInput.trim() });
+      setUserName(data.user.name);
+      setEditingName(false);
+    } catch {
+      // Silent fail
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    const supabase = createBrowserClient();
+    await supabase.auth.signOut();
+    clearAuth();
     router.replace('/login');
   };
 
@@ -61,9 +87,55 @@ export default function SettingsPage() {
       <h2 className="text-xl font-bold text-white mb-6">Settings</h2>
 
       {/* User info */}
-      <div className="rounded-xl bg-surface border border-white/5 p-4 mb-4">
-        <div className="text-xs text-slate-500 mb-1">Signed in as</div>
-        <div className="text-lg font-semibold text-white">{userName}</div>
+      <div className="rounded-xl bg-surface border border-white/5 p-4 mb-4 space-y-3">
+        <div>
+          <div className="text-xs text-slate-500 mb-1">Email</div>
+          <div className="text-sm text-slate-300">{userEmail}</div>
+        </div>
+        <div>
+          <div className="text-xs text-slate-500 mb-1">Display name</div>
+          {editingName ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleSaveName();
+                  if (e.key === 'Escape') setEditingName(false);
+                }}
+                autoFocus
+                className="flex-1 min-h-[36px] px-3 rounded-lg bg-surface-light border border-white/10 text-white text-sm outline-none focus:border-primary transition-colors"
+              />
+              <button
+                onClick={handleSaveName}
+                disabled={savingName}
+                className="min-h-[36px] px-3 rounded-lg bg-primary hover:bg-primary-light text-white text-sm font-medium transition-colors disabled:opacity-40"
+              >
+                {savingName ? '...' : 'Save'}
+              </button>
+              <button
+                onClick={() => setEditingName(false)}
+                className="min-h-[36px] px-3 rounded-lg text-slate-400 hover:text-white text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="text-lg font-semibold text-white">{userName}</div>
+              <button
+                onClick={() => {
+                  setNameInput(userName);
+                  setEditingName(true);
+                }}
+                className="text-xs text-primary-light hover:text-primary transition-colors"
+              >
+                Edit
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Cards per briefing */}
