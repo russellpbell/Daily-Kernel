@@ -4,6 +4,7 @@ struct HeatmapView: View {
     let completions: [DailyCompletion]
 
     @State private var displayedMonth: Date = Date()
+    @State private var monthChangeCount = 0
 
     private let calendar = Calendar.current
     private let dayHeaders = ["S", "M", "T", "W", "T", "F", "S"]
@@ -65,15 +66,18 @@ struct HeatmapView: View {
                     navigateMonth(by: -1)
                 } label: {
                     Image(systemName: "chevron.left")
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(Color.appPrimaryLight)
                         .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("Previous month")
 
                 Spacer()
 
                 Text(monthLabel)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
+                    .contentTransition(.numericText())
 
                 Spacer()
 
@@ -81,9 +85,11 @@ struct HeatmapView: View {
                     navigateMonth(by: 1)
                 } label: {
                     Image(systemName: "chevron.right")
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(Color.appPrimaryLight)
                         .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("Next month")
             }
 
             // Day headers
@@ -91,7 +97,7 @@ struct HeatmapView: View {
                 ForEach(dayHeaders, id: \.self) { header in
                     Text(header)
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(.secondary)
                         .frame(height: 24)
                 }
             }
@@ -109,8 +115,20 @@ struct HeatmapView: View {
             }
         }
         .padding(16)
-        .background(Color.appSurface)
-        .cornerRadius(16)
+        .background(
+            ZStack {
+                Color.green.opacity(0.03)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.glassBorder, lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+        .sensoryFeedback(.selection, trigger: monthChangeCount)
     }
 
     @ViewBuilder
@@ -119,16 +137,35 @@ struct HeatmapView: View {
 
         Text("\(day)")
             .font(.caption2.monospacedDigit())
-            .foregroundStyle(ratio > 0 ? .white : .gray)
+            .foregroundStyle(ratio > 0 ? .white : .secondary)
             .frame(width: 36, height: 36)
-            .background(cellColor(ratio: ratio))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .background(cellBackground(ratio: ratio, isToday: item.isToday))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
                 item.isToday
-                    ? RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.appPrimaryLight, lineWidth: 2)
+                    ? RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Color.appPrimaryLight, lineWidth: 2)
                     : nil
             )
+            .shadow(
+                color: item.isToday ? Color.appPrimary.opacity(0.3) : .clear,
+                radius: 4, y: 2
+            )
+            .accessibilityLabel(dayCellAccessibilityLabel(day: day, item: item))
+    }
+
+    @ViewBuilder
+    private func cellBackground(ratio: Double, isToday: Bool) -> some View {
+        if isToday && ratio <= 0 {
+            // Glass effect for today's cell even without completions
+            ZStack {
+                Color.appPrimary.opacity(0.1)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+        } else {
+            cellColor(ratio: ratio)
+        }
     }
 
     private func completionRatio(for item: DayItem) -> Double {
@@ -153,7 +190,23 @@ struct HeatmapView: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 displayedMonth = newDate
             }
+            monthChangeCount += 1
         }
+    }
+
+    private func dayCellAccessibilityLabel(day: Int, item: DayItem) -> String {
+        let ratio = completionRatio(for: item)
+        let dateLabel = "\(monthLabel) \(day)"
+        if item.isToday {
+            if ratio > 0 {
+                return "Today, \(dateLabel), \(Int(ratio * 100))% complete"
+            }
+            return "Today, \(dateLabel)"
+        }
+        if ratio > 0 {
+            return "\(dateLabel), \(Int(ratio * 100))% complete"
+        }
+        return dateLabel
     }
 }
 

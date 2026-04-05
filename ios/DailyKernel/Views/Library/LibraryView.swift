@@ -28,7 +28,7 @@ struct LibraryView: View {
             Color.appBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Tab picker
+                // Tab picker with glass backing
                 Picker("Section", selection: $selectedTab) {
                     ForEach(LibraryTab.allCases, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
@@ -97,9 +97,7 @@ struct LibraryView: View {
                                 .background(
                                     ZStack {
                                         if readFilter == filter {
-                                            Color.appPrimary
-                                        } else {
-                                            Color.clear
+                                            Capsule().fill(Color.appPrimary)
                                         }
                                         Capsule().fill(.ultraThinMaterial)
                                     }
@@ -114,8 +112,13 @@ struct LibraryView: View {
                                             lineWidth: 0.5
                                         )
                                 )
+                                .shadow(
+                                    color: readFilter == filter ? Color.appPrimary.opacity(0.3) : .clear,
+                                    radius: 6, y: 2
+                                )
                         }
                         .accessibilityLabel("Filter: \(filter.rawValue)")
+                        .accessibilityAddTraits(readFilter == filter ? .isSelected : [])
                     }
                 }
                 .padding(.horizontal)

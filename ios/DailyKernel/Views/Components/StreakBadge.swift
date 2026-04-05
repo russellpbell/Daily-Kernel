@@ -6,8 +6,22 @@ struct StreakBadge: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Text("\u{1F525}")
+            Image(systemName: "flame.fill")
                 .font(.title2)
+                .foregroundStyle(
+                    count > 0
+                        ? LinearGradient(
+                            colors: [.orange, .red],
+                            startPoint: .bottom,
+                            endPoint: .top
+                        )
+                        : LinearGradient(
+                            colors: [.gray, .gray],
+                            startPoint: .bottom,
+                            endPoint: .top
+                        )
+                )
+                .symbolRenderingMode(.hierarchical)
                 .scaleEffect(animateFlame ? 1.15 : 1.0)
                 .animation(
                     count > 0
@@ -19,7 +33,9 @@ struct StreakBadge: View {
             Text("\(count)")
                 .font(.title.bold().monospacedDigit())
                 .foregroundStyle(count > 0 ? .orange : .gray)
+                .contentTransition(.numericText())
         }
+        .accessibilityLabel("\(count) day streak")
         .onAppear {
             if count > 0 {
                 animateFlame = true

@@ -7,6 +7,7 @@ struct CategoriesView: View {
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var isAdding = false
+    @State private var addBounce = 0
 
     private let api = APIClient.shared
 
@@ -17,49 +18,48 @@ struct CategoriesView: View {
     private let sourceTypes = ["news", "biomedical", "stem", "academic"]
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.appBackground.ignoresSafeArea()
+        ZStack {
+            Color.appBackground.ignoresSafeArea()
 
-                if isLoading {
-                    LoadingView(message: "Loading categories...")
-                } else {
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            // Add category section
-                            addCategorySection
+            if isLoading {
+                LoadingView(message: "Loading categories...")
+            } else {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Add category section
+                        addCategorySection
 
-                            // Suggestion chips
-                            if !filteredSuggestions.isEmpty {
-                                suggestionChips
-                            }
-
-                            // Categories list
-                            if categories.isEmpty {
-                                EmptyStateView(
-                                    icon: "square.grid.2x2",
-                                    message: "No categories yet",
-                                    detail: "Add categories to customize your briefings"
-                                )
-                                .padding(.top, 40)
-                            } else {
-                                categoryList
-                            }
+                        // Suggestion chips
+                        if !filteredSuggestions.isEmpty {
+                            suggestionChips
                         }
-                        .padding(.vertical, 16)
+
+                        // Categories list
+                        if categories.isEmpty {
+                            EmptyStateView(
+                                icon: "square.grid.2x2",
+                                message: "No categories yet",
+                                detail: "Add categories to customize your briefings"
+                            )
+                            .padding(.top, 40)
+                        } else {
+                            categoryList
+                        }
                     }
+                    .padding(.vertical, 16)
                 }
             }
-            .navigationTitle("Categories")
-            .navigationBarTitleDisplayMode(.inline)
-            .alert("Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "Something went wrong")
-            }
-            .task {
-                await loadCategories()
-            }
+        }
+        .navigationTitle("Categories")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "Something went wrong")
+        }
+        .task {
+            await loadCategories()
         }
     }
 
@@ -70,11 +70,16 @@ struct CategoriesView: View {
             TextField("New category name", text: $newCategoryName)
                 .textFieldStyle(.plain)
                 .padding(12)
-                .background(Color.appSurface)
-                .cornerRadius(12)
-                .foregroundStyle(.white)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Color.glassBorder, lineWidth: 0.5)
+                )
+                .foregroundStyle(.primary)
 
             Button {
+                addBounce += 1
                 addCategory(name: newCategoryName)
             } label: {
                 HStack {
@@ -83,18 +88,28 @@ struct CategoriesView: View {
                             .tint(.white)
                     } else {
                         Image(systemName: "plus")
+                            .symbolRenderingMode(.hierarchical)
+                            .symbolEffect(.bounce, value: addBounce)
                     }
                 }
                 .frame(width: 44, height: 44)
                 .background(
                     newCategoryName.trimmingCharacters(in: .whitespaces).isEmpty
-                        ? Color.appSurfaceLight
+                        ? Color.appSurfaceLight.opacity(0.5)
                         : Color.appPrimary
                 )
                 .foregroundStyle(.white)
-                .cornerRadius(12)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .shadow(
+                    color: newCategoryName.trimmingCharacters(in: .whitespaces).isEmpty
+                        ? .clear
+                        : Color.appPrimary.opacity(0.4),
+                    radius: 8, y: 4
+                )
             }
             .disabled(newCategoryName.trimmingCharacters(in: .whitespaces).isEmpty || isAdding)
+            .sensoryFeedback(.impact(weight: .medium), trigger: addBounce)
+            .accessibilityLabel("Add category")
         }
         .padding(.horizontal)
     }
@@ -110,7 +125,7 @@ struct CategoriesView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Suggestions")
                 .font(.caption)
-                .foregroundStyle(.gray)
+                .foregroundStyle(.secondary)
                 .padding(.horizontal)
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -128,13 +143,14 @@ struct CategoriesView: View {
                             .foregroundStyle(Color.appPrimaryLight)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
-                            .background(Color.appSurface)
-                            .cornerRadius(20)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
                             .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .stroke(Color.appSurfaceLight, lineWidth: 1)
+                                Capsule()
+                                    .strokeBorder(Color.glassBorder, lineWidth: 0.5)
                             )
                         }
+                        .accessibilityLabel("Add \(suggestion) category")
                     }
                 }
                 .padding(.horizontal)
@@ -190,7 +206,9 @@ struct CategoriesView: View {
             isAdding = true
             do {
                 let response = try await api.addCategory(name: trimmed)
-                categories.append(response.category)
+                withAnimation(.spring(response: 0.3)) {
+                    categories.append(response.category)
+                }
                 newCategoryName = ""
             } catch {
                 errorMessage = error.localizedDescription
@@ -244,7 +262,9 @@ struct CategoriesView: View {
     private func deleteCategory(at index: Int) {
         guard index < categories.count else { return }
         let category = categories[index]
-        categories.remove(at: index)
+        withAnimation(.spring(response: 0.3)) {
+            categories.remove(at: index)
+        }
 
         Task {
             do {
@@ -252,7 +272,9 @@ struct CategoriesView: View {
             } catch {
                 errorMessage = error.localizedDescription
                 showError = true
-                categories.insert(category, at: min(index, categories.count))
+                withAnimation {
+                    categories.insert(category, at: min(index, categories.count))
+                }
             }
         }
     }
@@ -297,12 +319,18 @@ private struct CategoryRow: View {
             // Name + toggle
             HStack {
                 Circle()
-                    .fill(categoryColors.0)
+                    .fill(
+                        LinearGradient(
+                            colors: [categoryColors.0, categoryColors.1],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .frame(width: 10, height: 10)
 
                 Text(category.name)
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
 
                 Spacer()
 
@@ -312,13 +340,14 @@ private struct CategoryRow: View {
                 ))
                 .labelsHidden()
                 .tint(Color.appPrimary)
+                .accessibilityLabel("\(category.name) active")
             }
 
             // Source type picker
             HStack {
                 Text("Source:")
                     .font(.caption)
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(.secondary)
 
                 Picker("Source Type", selection: Binding(
                     get: { category.sourceType },
@@ -330,6 +359,7 @@ private struct CategoryRow: View {
                 }
                 .pickerStyle(.menu)
                 .tint(Color.appPrimaryLight)
+                .accessibilityLabel("Source type for \(category.name)")
             }
 
             // Weight slider
@@ -337,11 +367,12 @@ private struct CategoryRow: View {
                 HStack {
                     Text("Weight")
                         .font(.caption)
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(.secondary)
                     Spacer()
                     Text("\(Int(localWeight))%")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(Color.appPrimaryLight)
+                        .contentTransition(.numericText())
                 }
 
                 Slider(value: $localWeight, in: 0...100, step: 5) {
@@ -352,6 +383,7 @@ private struct CategoryRow: View {
                     }
                 }
                 .tint(categoryColors.0)
+                .accessibilityLabel("Weight for \(category.name): \(Int(localWeight)) percent")
             }
 
             // Delete button
@@ -369,6 +401,7 @@ private struct CategoryRow: View {
                     .foregroundStyle(.red.opacity(0.8))
                 }
                 .frame(height: 44)
+                .accessibilityLabel("Remove \(category.name) category")
                 .confirmationDialog(
                     "Remove \(category.name)?",
                     isPresented: $showDeleteConfirm,
@@ -380,12 +413,19 @@ private struct CategoryRow: View {
             }
         }
         .padding(16)
-        .background(Color.appSurface)
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(categoryColors.0.opacity(0.2), lineWidth: 1)
+        .background(
+            ZStack {
+                categoryColors.0.opacity(0.06)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
         )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(categoryColors.0.opacity(0.2), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
         .opacity(category.isActive ? 1.0 : 0.6)
     }
 }

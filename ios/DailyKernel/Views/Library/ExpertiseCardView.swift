@@ -35,29 +35,38 @@ struct ExpertiseCardView: View {
                 // Category name
                 Text(expertise.categoryName)
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
 
                 Spacer()
 
-                // Level badge
+                // Level badge with glass effect
                 Text(expertise.levelLabel)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(levelColor)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(levelColor.opacity(0.15))
-                    .cornerRadius(10)
+                    .background(
+                        ZStack {
+                            levelColor.opacity(0.15)
+                            Capsule().fill(.ultraThinMaterial)
+                        }
+                    )
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(levelColor.opacity(0.3), lineWidth: 0.5)
+                    )
             }
 
             // Progress bar
             VStack(alignment: .leading, spacing: 4) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.appSurface)
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .fill(Color.glassBackground)
                             .frame(height: 6)
 
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
                             .fill(
                                 LinearGradient(
                                     colors: [categoryColors.0, categoryColors.1],
@@ -66,6 +75,7 @@ struct ExpertiseCardView: View {
                                 )
                             )
                             .frame(width: geo.size.width * progressToNextLevel, height: 6)
+                            .shadow(color: categoryColors.0.opacity(0.4), radius: 4, y: 0)
                     }
                 }
                 .frame(height: 6)
@@ -73,7 +83,7 @@ struct ExpertiseCardView: View {
                 if expertise.level < 5 {
                     Text("Progress to \(nextLevelLabel)")
                         .font(.caption2)
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(.tertiary)
                 }
             }
 
@@ -82,31 +92,40 @@ struct ExpertiseCardView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "doc.text")
                         .font(.caption2)
-                        .foregroundStyle(.gray)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
                     Text("\(expertise.topicsCovered) topics")
                         .font(.caption)
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(.secondary)
                 }
 
                 HStack(spacing: 4) {
                     Image(systemName: "rectangle.stack")
                         .font(.caption2)
-                        .foregroundStyle(.gray)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
                     Text("\(expertise.cardsReviewed) cards")
                         .font(.caption)
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.appSurface.opacity(0.7))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(categoryColors.0.opacity(0.3), lineWidth: 1)
-                )
+            ZStack {
+                categoryColors.0.opacity(0.06)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
         )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(categoryColors.0.opacity(0.2), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(expertise.categoryName), level \(expertise.levelLabel), \(expertise.cardsReviewed) cards reviewed")
     }
 
     private var nextLevelLabel: String {

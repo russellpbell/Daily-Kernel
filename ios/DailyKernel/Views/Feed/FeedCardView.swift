@@ -73,18 +73,32 @@ struct FeedCardView: View {
         .padding(16)
         .background(
             ZStack {
-                categoryColors.0.opacity(0.06)
+                // Category tinted base
+                LinearGradient(
+                    colors: [categoryColors.0.opacity(0.08), categoryColors.1.opacity(0.04)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                // Glass overlay
                 Rectangle().fill(.ultraThinMaterial)
             }
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.glassBorder, lineWidth: 0.5)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [Color.glassHighlight, Color.glassBorder],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
         )
-        .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(item.categoryName): \(item.title)")
+        .accessibilityHint(item.summary)
     }
 
     @ViewBuilder
@@ -112,9 +126,17 @@ struct FeedCardView: View {
             .foregroundStyle(color)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(color.opacity(0.12))
-            .background(.ultraThinMaterial)
+            .background(
+                ZStack {
+                    color.opacity(0.12)
+                    Capsule().fill(.ultraThinMaterial)
+                }
+            )
             .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(color.opacity(0.2), lineWidth: 0.5)
+            )
     }
 }
 

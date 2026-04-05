@@ -22,6 +22,7 @@ struct ReadingListItemView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.caption2)
+                            .symbolRenderingMode(.hierarchical)
                         Text("Read")
                             .font(.caption2)
                     }
@@ -30,19 +31,19 @@ struct ReadingListItemView: View {
 
                 Text(item.savedAt.relativeDate())
                     .font(.caption2)
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(.tertiary)
             }
 
             // Title
             Text(item.title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
                 .lineLimit(isExpanded ? nil : 2)
 
             // Summary
             Text(item.summary)
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.secondary)
                 .lineSpacing(2)
                 .lineLimit(isExpanded ? nil : 3)
 
@@ -61,6 +62,7 @@ struct ReadingListItemView: View {
                         }
                         .foregroundStyle(Color.appPrimaryLight)
                     }
+                    .accessibilityLabel("Open \(sourceName) in browser")
                     .sheet(isPresented: $showWebView) {
                         SafariWebView(url: url)
                     }
@@ -68,10 +70,11 @@ struct ReadingListItemView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "link")
                             .font(.caption2)
+                            .symbolRenderingMode(.hierarchical)
                         Text(sourceName)
                             .font(.caption)
                     }
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(.tertiary)
                 }
             }
 
@@ -79,19 +82,23 @@ struct ReadingListItemView: View {
             if isExpanded {
                 VStack(alignment: .leading, spacing: 8) {
                     Divider()
-                        .background(Color.appSurfaceLight)
+                        .overlay(Color.glassBorder)
 
                     Text("Notes")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(.secondary)
 
                     TextField("Add notes...", text: $editingNotes, axis: .vertical)
                         .textFieldStyle(.plain)
                         .font(.caption)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                         .padding(10)
-                        .background(Color.appSurface)
-                        .cornerRadius(8)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(Color.glassBorder, lineWidth: 0.5)
+                        )
                         .lineLimit(3...8)
                         .onChange(of: editingNotes) { _, newValue in
                             onUpdateNotes(newValue)
@@ -114,10 +121,12 @@ struct ReadingListItemView: View {
                         .font(.caption2)
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption2)
+                        .contentTransition(.symbolEffect(.replace))
                 }
                 .foregroundStyle(Color.appPrimaryLight)
             }
             .frame(height: 30)
+            .accessibilityLabel(isExpanded ? "Collapse details" : "Expand details")
         }
         .padding(.vertical, 4)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -135,5 +144,7 @@ struct ReadingListItemView: View {
             }
             .tint(.green)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(item.categoryName): \(item.title)\(item.isRead ? ", read" : "")")
     }
 }

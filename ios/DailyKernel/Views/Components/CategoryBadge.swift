@@ -21,5 +21,7 @@ struct CategoryBadge: View {
                 )
             )
             .clipShape(Capsule())
+            .shadow(color: colors.0.opacity(0.3), radius: 4, y: 2)
+            .accessibilityLabel("Category: \(name)")
     }
 }

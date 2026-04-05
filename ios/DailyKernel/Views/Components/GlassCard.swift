@@ -13,13 +13,21 @@ struct GlassCard: ViewModifier {
                     if let tint = tintColor {
                         tint.opacity(0.08)
                     }
-                    Rectangle().fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(.ultraThinMaterial)
                 }
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color.glassBorder, lineWidth: 0.5)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [Color.glassHighlight, Color.glassBorder],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.5
+                    )
             )
             .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
     }

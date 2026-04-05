@@ -46,7 +46,7 @@ struct FeedbackButton: View {
             tapCount += 1
             action()
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 22, weight: .medium))
                     .symbolRenderingMode(.hierarchical)
@@ -61,8 +61,16 @@ struct FeedbackButton: View {
                     .clipShape(Circle())
                     .overlay(
                         Circle()
-                            .strokeBorder(tint.opacity(0.2), lineWidth: 0.5)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [tint.opacity(0.3), tint.opacity(0.1)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.5
+                            )
                     )
+                    .shadow(color: tint.opacity(0.2), radius: 8, y: 4)
 
                 Text(label)
                     .font(.caption2.weight(.medium))
@@ -72,13 +80,14 @@ struct FeedbackButton: View {
         .buttonStyle(FeedbackScaleButtonStyle())
         .sensoryFeedback(.impact(weight: .light), trigger: tapCount)
         .accessibilityLabel(label)
+        .accessibilityAddTraits(.isButton)
     }
 }
 
 private struct FeedbackScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
-            .animation(.spring(response: 0.2), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.88 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }

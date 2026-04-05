@@ -11,59 +11,58 @@ struct StatsView: View {
     private let api = APIClient.shared
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.appBackground.ignoresSafeArea()
+        ZStack {
+            Color.appBackground.ignoresSafeArea()
 
-                if isLoading {
-                    LoadingView(message: "Loading stats...")
-                } else {
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            // Streak cards
-                            streakSection
+            if isLoading {
+                LoadingView(message: "Loading stats...")
+            } else {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Streak cards
+                        streakSection
 
-                            // Heatmap
+                        // Heatmap
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Activity")
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+
+                            HeatmapView(completions: completions)
+                        }
+                        .padding(.horizontal)
+
+                        // Expertise
+                        if !expertise.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Activity")
+                                Text("Expertise")
                                     .font(.headline)
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(.primary)
 
-                                HeatmapView(completions: completions)
+                                ForEach(expertise) { exp in
+                                    ExpertiseCardView(expertise: exp)
+                                }
                             }
                             .padding(.horizontal)
-
-                            // Expertise
-                            if !expertise.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("Expertise")
-                                        .font(.headline)
-                                        .foregroundStyle(.white)
-
-                                    ForEach(expertise) { exp in
-                                        ExpertiseCardView(expertise: exp)
-                                    }
-                                }
-                                .padding(.horizontal)
-                            }
                         }
-                        .padding(.vertical, 16)
                     }
-                    .refreshable {
-                        await loadStats()
-                    }
+                    .padding(.vertical, 16)
+                }
+                .refreshable {
+                    await loadStats()
                 }
             }
-            .navigationTitle("Stats")
-            .navigationBarTitleDisplayMode(.inline)
-            .alert("Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "Something went wrong")
-            }
-            .task {
-                await loadStats()
-            }
+        }
+        .navigationTitle("Progress")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "Something went wrong")
+        }
+        .task {
+            await loadStats()
         }
     }
 
@@ -77,33 +76,59 @@ struct StatsView: View {
 
                 Text("Current Streak")
                     .font(.caption)
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 20)
-            .background(Color.appSurface)
-            .cornerRadius(16)
+            .background(
+                ZStack {
+                    Color.orange.opacity(streak.currentStreak > 0 ? 0.06 : 0)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.glassBorder, lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
 
             // Longest streak
             VStack(spacing: 8) {
                 HStack(spacing: 4) {
-                    Text("\u{1F3C6}")
+                    Image(systemName: "trophy.fill")
                         .font(.title2)
+                        .foregroundStyle(.yellow)
+                        .symbolRenderingMode(.hierarchical)
                     Text("\(streak.longestStreak)")
                         .font(.title.bold().monospacedDigit())
                         .foregroundStyle(.yellow)
+                        .contentTransition(.numericText())
                 }
 
                 Text("Longest Streak")
                     .font(.caption)
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 20)
-            .background(Color.appSurface)
-            .cornerRadius(16)
+            .background(
+                ZStack {
+                    Color.yellow.opacity(streak.longestStreak > 0 ? 0.06 : 0)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.glassBorder, lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
         }
         .padding(.horizontal)
+        .accessibilityElement(children: .contain)
     }
 
     // MARK: - Data

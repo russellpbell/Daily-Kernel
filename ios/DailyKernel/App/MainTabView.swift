@@ -9,6 +9,7 @@ struct MainTabView: View {
                 BriefingView()
                     .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             }
+            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
             .tabItem {
                 Label("Briefing", systemImage: "newspaper.fill")
                     .symbolRenderingMode(.hierarchical)
@@ -19,6 +20,7 @@ struct MainTabView: View {
                 LibraryView()
                     .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             }
+            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
             .tabItem {
                 Label("Library", systemImage: "books.vertical.fill")
                     .symbolRenderingMode(.hierarchical)
@@ -29,6 +31,7 @@ struct MainTabView: View {
                 CategoriesView()
                     .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             }
+            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
             .tabItem {
                 Label("Topics", systemImage: "square.grid.2x2.fill")
                     .symbolRenderingMode(.hierarchical)
@@ -39,6 +42,7 @@ struct MainTabView: View {
                 StatsView()
                     .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             }
+            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
             .tabItem {
                 Label("Progress", systemImage: "chart.bar.fill")
                     .symbolRenderingMode(.hierarchical)
@@ -49,6 +53,7 @@ struct MainTabView: View {
                 SettingsView()
                     .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             }
+            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
             .tabItem {
                 Label("Settings", systemImage: "gearshape.fill")
                     .symbolRenderingMode(.hierarchical)
@@ -56,7 +61,6 @@ struct MainTabView: View {
             .tag(4)
         }
         .tint(Color.appPrimary)
-        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
         .sensoryFeedback(.selection, trigger: selectedTab)
     }
 }

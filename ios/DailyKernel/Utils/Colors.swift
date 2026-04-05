@@ -10,9 +10,18 @@ extension Color {
 
     // MARK: - Glass-Friendly Colors
 
+    /// Subtle white tint for glass surface backgrounds
     static let glassBackground = Color.white.opacity(0.06)
+    /// Border color for glass card overlays
     static let glassBorder = Color.white.opacity(0.1)
+    /// Brighter highlight for glass edge effects and top-leading gradients
     static let glassHighlight = Color.white.opacity(0.15)
+    /// Elevated glass surface with slightly more opacity
+    static let glassElevated = Color.white.opacity(0.1)
+    /// Subtle inner shadow tint for depth on glass panels
+    static let glassInnerShadow = Color.black.opacity(0.08)
+
+    // MARK: - Hex Initializer
 
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)

@@ -20,241 +20,287 @@ struct SettingsView: View {
     @State private var showNotificationDeniedAlert = false
     @State private var subscriptionStatus: String?
     @State private var subscriptionPlan: String?
+    @State private var saveCount = 0
 
     private let api = APIClient.shared
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.appBackground.ignoresSafeArea()
+        ZStack {
+            Color.appBackground.ignoresSafeArea()
 
-                if isLoading {
-                    LoadingView(message: "Loading settings...")
-                } else {
-                    Form {
-                        // Profile section
-                        Section {
+            if isLoading {
+                LoadingView(message: "Loading settings...")
+            } else {
+                Form {
+                    // Profile section
+                    Section {
+                        HStack {
+                            Label("Email", systemImage: "envelope")
+                                .foregroundStyle(.secondary)
+                                .symbolRenderingMode(.hierarchical)
+                            Spacer()
+                            Text(userEmail)
+                                .foregroundStyle(.primary.opacity(0.7))
+                        }
+                        .listRowBackground(Color.clear)
+
+                        HStack {
+                            Label("Name", systemImage: "person")
+                                .foregroundStyle(.secondary)
+                                .symbolRenderingMode(.hierarchical)
+                            TextField("Your name", text: $userName)
+                                .multilineTextAlignment(.trailing)
+                                .foregroundStyle(.primary)
+                        }
+                        .listRowBackground(Color.clear)
+                    } header: {
+                        Text("Profile")
+                    }
+
+                    // Briefing section
+                    Section {
+                        Stepper(value: $cardsPerBriefing, in: 5...25) {
                             HStack {
-                                Text("Email")
-                                    .foregroundStyle(.gray)
+                                Label("Cards per briefing", systemImage: "rectangle.stack")
+                                    .foregroundStyle(.secondary)
+                                    .symbolRenderingMode(.hierarchical)
                                 Spacer()
-                                Text(userEmail)
-                                    .foregroundStyle(.white.opacity(0.7))
+                                Text("\(cardsPerBriefing)")
+                                    .font(.body.monospacedDigit())
+                                    .foregroundStyle(Color.appPrimaryLight)
+                                    .contentTransition(.numericText())
                             }
-                            .listRowBackground(Color.appSurface)
-
-                            HStack {
-                                Text("Name")
-                                    .foregroundStyle(.gray)
-                                TextField("Your name", text: $userName)
-                                    .multilineTextAlignment(.trailing)
-                                    .foregroundStyle(.white)
-                            }
-                            .listRowBackground(Color.appSurface)
-                        } header: {
-                            Text("Profile")
                         }
+                        .listRowBackground(Color.clear)
+                        .sensoryFeedback(.selection, trigger: cardsPerBriefing)
+                    } header: {
+                        Text("Briefing")
+                    }
 
-                        // Briefing section
-                        Section {
-                            Stepper(value: $cardsPerBriefing, in: 5...25) {
-                                HStack {
-                                    Text("Cards per briefing")
-                                        .foregroundStyle(.gray)
-                                    Spacer()
-                                    Text("\(cardsPerBriefing)")
-                                        .font(.body.monospacedDigit())
-                                        .foregroundStyle(Color.appPrimaryLight)
-                                }
-                            }
-                            .listRowBackground(Color.appSurface)
-                        } header: {
-                            Text("Briefing")
+                    // Notifications section
+                    Section {
+                        Toggle(isOn: $notificationsEnabled) {
+                            Label("Push Notifications", systemImage: "bell.badge")
+                                .foregroundStyle(.secondary)
+                                .symbolRenderingMode(.hierarchical)
                         }
-
-                        // Notifications section
-                        Section {
-                            Toggle(isOn: $notificationsEnabled) {
-                                Text("Push Notifications")
-                                    .foregroundStyle(.gray)
-                            }
-                            .tint(Color.appPrimary)
-                            .listRowBackground(Color.appSurface)
-                            .onChange(of: notificationsEnabled) { _, newValue in
-                                handleNotificationToggle(newValue)
-                            }
-                        } header: {
-                            Text("Notifications")
+                        .tint(Color.appPrimary)
+                        .listRowBackground(Color.clear)
+                        .onChange(of: notificationsEnabled) { _, newValue in
+                            handleNotificationToggle(newValue)
                         }
+                    } header: {
+                        Text("Notifications")
+                    }
 
-                        // Subscription section
-                        Section {
-                            HStack {
-                                Text("Plan")
-                                    .foregroundStyle(.gray)
-                                Spacer()
-                                if storeService.hasFreePass {
-                                    Text("Free Pass")
-                                        .font(.caption.bold())
-                                        .foregroundStyle(.green)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 3)
-                                        .background(Color.green.opacity(0.15))
-                                        .cornerRadius(6)
-                                } else if let plan = subscriptionPlan {
-                                    Text(plan == "monthly" ? "Monthly" : plan == "annual" ? "Annual" : plan.capitalized)
-                                        .foregroundStyle(.white.opacity(0.7))
-                                } else {
-                                    Text("None")
-                                        .foregroundStyle(.white.opacity(0.5))
-                                }
+                    // Subscription section
+                    Section {
+                        HStack {
+                            Label("Plan", systemImage: "creditcard")
+                                .foregroundStyle(.secondary)
+                                .symbolRenderingMode(.hierarchical)
+                            Spacer()
+                            if storeService.hasFreePass {
+                                Text("Free Pass")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.green)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Color.green.opacity(0.15))
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            } else if let plan = subscriptionPlan {
+                                Text(plan == "monthly" ? "Monthly" : plan == "annual" ? "Annual" : plan.capitalized)
+                                    .foregroundStyle(.primary.opacity(0.7))
+                            } else {
+                                Text("None")
+                                    .foregroundStyle(.primary.opacity(0.5))
                             }
-                            .listRowBackground(Color.appSurface)
-
-                            HStack {
-                                Text("Status")
-                                    .foregroundStyle(.gray)
-                                Spacer()
-                                if let status = subscriptionStatus {
-                                    Text(status == "active" ? "Active" : status == "free_pass" ? "Active" : status == "canceled" ? "Canceled" : status == "past_due" ? "Past Due" : status.capitalized)
-                                        .foregroundStyle(status == "active" || status == "free_pass" ? .green : status == "canceled" ? .orange : .red)
-                                } else {
-                                    Text("Not subscribed")
-                                        .foregroundStyle(.white.opacity(0.5))
-                                }
-                            }
-                            .listRowBackground(Color.appSurface)
-
-                            if !storeService.hasFreePass {
-                                Button {
-                                    Task {
-                                        await storeService.restorePurchases()
-                                    }
-                                } label: {
-                                    HStack {
-                                        Spacer()
-                                        Text("Restore Purchases")
-                                            .foregroundStyle(Color.appPrimaryLight)
-                                        Spacer()
-                                    }
-                                }
-                                .listRowBackground(Color.appSurface)
-                            }
-                        } header: {
-                            Text("Subscription")
                         }
+                        .listRowBackground(Color.clear)
 
-                        // Developer section
-                        Section {
-                            HStack {
-                                Text("API URL")
-                                    .foregroundStyle(.gray)
-                                TextField("http://localhost:3000", text: $apiBaseURL)
-                                    .multilineTextAlignment(.trailing)
-                                    .foregroundStyle(.white)
-                                    .font(.caption)
-                                    .autocapitalization(.none)
-                                    .disableAutocorrection(true)
+                        HStack {
+                            Label("Status", systemImage: "checkmark.seal")
+                                .foregroundStyle(.secondary)
+                                .symbolRenderingMode(.hierarchical)
+                            Spacer()
+                            if let status = subscriptionStatus {
+                                let displayText = statusDisplayText(status)
+                                let displayColor = statusColor(status)
+                                Text(displayText)
+                                    .foregroundStyle(displayColor)
+                                    .fontWeight(.medium)
+                            } else {
+                                Text("Not subscribed")
+                                    .foregroundStyle(.primary.opacity(0.5))
                             }
-                            .listRowBackground(Color.appSurface)
-                        } header: {
-                            Text("Developer")
                         }
+                        .listRowBackground(Color.clear)
 
-                        // Save button
-                        Section {
+                        if !storeService.hasFreePass {
                             Button {
-                                saveSettings()
+                                Task {
+                                    await storeService.restorePurchases()
+                                }
                             } label: {
                                 HStack {
                                     Spacer()
-                                    if isSaving {
-                                        ProgressView()
-                                            .tint(.white)
-                                    } else if saveSuccess {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "checkmark.circle.fill")
-                                            Text("Saved")
-                                        }
-                                        .foregroundStyle(.green)
-                                    } else {
-                                        Text("Save Changes")
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(.white)
-                                    }
+                                    Text("Restore Purchases")
+                                        .foregroundStyle(Color.appPrimaryLight)
                                     Spacer()
                                 }
                             }
-                            .disabled(isSaving)
-                            .listRowBackground(Color.appPrimary.opacity(isSaving ? 0.5 : 1))
+                            .listRowBackground(Color.clear)
+                            .accessibilityLabel("Restore previous purchases")
                         }
+                    } header: {
+                        Text("Subscription")
+                    }
 
-                        // Sign out
-                        Section {
-                            Button(role: .destructive) {
-                                showSignOutConfirm = true
-                            } label: {
-                                HStack {
-                                    Spacer()
-                                    Text("Sign Out")
-                                        .fontWeight(.medium)
-                                    Spacer()
-                                }
-                            }
-                            .listRowBackground(Color.red.opacity(0.15))
+                    // Developer section
+                    Section {
+                        HStack {
+                            Label("API URL", systemImage: "server.rack")
+                                .foregroundStyle(.secondary)
+                                .symbolRenderingMode(.hierarchical)
+                            TextField("http://localhost:3000", text: $apiBaseURL)
+                                .multilineTextAlignment(.trailing)
+                                .foregroundStyle(.primary)
+                                .font(.caption)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
                         }
+                        .listRowBackground(Color.clear)
+                    } header: {
+                        Text("Developer")
+                    }
 
-                        // App info
-                        Section {
+                    // Save button
+                    Section {
+                        Button {
+                            saveSettings()
+                        } label: {
                             HStack {
-                                Text("Version")
-                                    .foregroundStyle(.gray)
                                 Spacer()
-                                Text(appVersion)
-                                    .foregroundStyle(.gray.opacity(0.7))
+                                if isSaving {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else if saveSuccess {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .symbolRenderingMode(.hierarchical)
+                                        Text("Saved")
+                                    }
+                                    .foregroundStyle(.green)
+                                } else {
+                                    Text("Save Changes")
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.white)
+                                }
+                                Spacer()
                             }
-                            .listRowBackground(Color.appSurface)
-                        } footer: {
-                            Text("Daily Kernel - Your daily knowledge briefing")
-                                .font(.caption2)
-                                .foregroundStyle(.gray.opacity(0.5))
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 16)
                         }
+                        .disabled(isSaving)
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.appPrimary.opacity(isSaving ? 0.5 : 1))
+                        )
+                        .sensoryFeedback(.success, trigger: saveCount)
+                        .accessibilityLabel(isSaving ? "Saving" : saveSuccess ? "Changes saved" : "Save changes")
                     }
-                    .scrollContentBackground(.hidden)
-                }
-            }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .alert("Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "Something went wrong")
-            }
-            .alert("Notifications Disabled", isPresented: $showNotificationDeniedAlert) {
-                Button("Open Settings") {
-                    if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(settingsURL)
+
+                    // Sign out
+                    Section {
+                        Button(role: .destructive) {
+                            showSignOutConfirm = true
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                                    .fontWeight(.medium)
+                                Spacer()
+                            }
+                        }
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.red.opacity(0.15))
+                        )
+                        .accessibilityLabel("Sign out of Daily Kernel")
+                    }
+
+                    // App info
+                    Section {
+                        HStack {
+                            Label("Version", systemImage: "info.circle")
+                                .foregroundStyle(.secondary)
+                                .symbolRenderingMode(.hierarchical)
+                            Spacer()
+                            Text(appVersion)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .listRowBackground(Color.clear)
+                    } footer: {
+                        Text("Daily Kernel - Your daily knowledge briefing")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 16)
                     }
                 }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Notification permission was denied. Please enable notifications in the Settings app to receive daily briefing reminders.")
+                .formStyle(.grouped)
+                .scrollContentBackground(.hidden)
             }
-            .confirmationDialog(
-                "Sign out of Daily Kernel?",
-                isPresented: $showSignOutConfirm,
-                titleVisibility: .visible
-            ) {
-                Button("Sign Out", role: .destructive) {
-                    authService.signOut()
+        }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "Something went wrong")
+        }
+        .alert("Notifications Disabled", isPresented: $showNotificationDeniedAlert) {
+            Button("Open Settings") {
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsURL)
                 }
-                Button("Cancel", role: .cancel) {}
             }
-            .task {
-                await loadSettings()
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Notification permission was denied. Please enable notifications in the Settings app to receive daily briefing reminders.")
+        }
+        .confirmationDialog(
+            "Sign out of Daily Kernel?",
+            isPresented: $showSignOutConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Sign Out", role: .destructive) {
+                authService.signOut()
             }
+            Button("Cancel", role: .cancel) {}
+        }
+        .task {
+            await loadSettings()
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func statusDisplayText(_ status: String) -> String {
+        switch status {
+        case "active": return "Active"
+        case "free_pass": return "Active"
+        case "canceled": return "Canceled"
+        case "past_due": return "Past Due"
+        default: return status.capitalized
+        }
+    }
+
+    private func statusColor(_ status: String) -> Color {
+        switch status {
+        case "active", "free_pass": return .green
+        case "canceled": return .orange
+        default: return .red
         }
     }
 
@@ -308,8 +354,7 @@ struct SettingsView: View {
                     "cards_per_briefing": cardsPerBriefing
                 ])
                 saveSuccess = true
-                let generator = UINotificationFeedbackGenerator()
-                generator.notificationOccurred(.success)
+                saveCount += 1
 
                 try? await Task.sleep(for: .seconds(2))
                 saveSuccess = false
@@ -329,8 +374,6 @@ struct SettingsView: View {
                 let settings = await UNUserNotificationCenter.current().notificationSettings()
 
                 if settings.authorizationStatus == .denied {
-                    // Permission was previously denied at the system level;
-                    // requestPermission() won't show a prompt again.
                     notificationsEnabled = false
                     showNotificationDeniedAlert = true
                     return

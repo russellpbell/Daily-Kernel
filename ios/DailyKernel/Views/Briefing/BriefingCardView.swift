@@ -11,7 +11,7 @@ struct BriefingCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header: category badge + save button
+            // Header: category badge + review tag + save button
             HStack {
                 CategoryBadge(name: card.categoryName)
 
@@ -22,6 +22,7 @@ struct BriefingCardView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(Color.appSecondary.opacity(0.15))
+                        .background(.ultraThinMaterial)
                         .clipShape(Capsule())
                 }
 
@@ -31,11 +32,13 @@ struct BriefingCardView: View {
                     Button(action: onSaveToggle) {
                         Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
                             .font(.system(size: 18))
+                            .symbolRenderingMode(.hierarchical)
                             .foregroundStyle(isSaved ? Color.appPrimary : .secondary)
                             .contentTransition(.symbolEffect(.replace))
                     }
                     .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityLabel(isSaved ? "Saved" : "Save to reading list")
+                    .accessibilityLabel(isSaved ? "Remove from reading list" : "Save to reading list")
+                    .accessibilityAddTraits(.isButton)
                 }
             }
             .padding(.horizontal, 20)
@@ -59,6 +62,7 @@ struct BriefingCardView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
+                    .padding(.bottom, 16)
             }
             .frame(maxHeight: .infinity)
 
@@ -66,7 +70,13 @@ struct BriefingCardView: View {
             if let sourceName = card.sourceName, !sourceName.isEmpty {
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(categoryColors.0)
+                        .fill(
+                            LinearGradient(
+                                colors: [categoryColors.0, categoryColors.1],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                         .frame(width: 6, height: 6)
 
                     if let sourceUrl = card.sourceUrl, let url = URL(string: sourceUrl) {
@@ -91,7 +101,7 @@ struct BriefingCardView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             ZStack {
-                // Category-tinted gradient
+                // Category-tinted gradient base
                 LinearGradient(
                     colors: [categoryColors.0.opacity(0.15), categoryColors.1.opacity(0.08)],
                     startPoint: .topLeading,
@@ -104,10 +114,18 @@ struct BriefingCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(Color.glassBorder, lineWidth: 0.5)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [Color.glassHighlight, Color.glassBorder],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
         )
         .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(card.categoryName): \(card.title)")
+        .accessibilityHint(card.summary)
     }
 }
